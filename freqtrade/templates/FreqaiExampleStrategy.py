@@ -27,9 +27,9 @@ class FreqaiExampleStrategy(IStrategy):
     """
 
     minimal_roi = {
-        "60": 0.01,
-        "30": 0.02,
-        "0": 0.04
+        "60": 0.00,
+        "30": 0.005,
+        "0": 0.01
     }
 
     plot_config = {
