@@ -150,6 +150,22 @@ class FreqaiExampleHybridStrategy(IStrategy):
         )
 
         return dataframe
+    
+    def informative_pairs(self):
+        """
+        Define additional, informative pair/interval combinations to be cached from the exchange.
+        These pair/interval combinations are non-tradeable, unless they are part
+        of the whitelist as well.
+        For more information, please consult the documentation
+        :return: List of tuples in the format (pair, interval)
+            Sample: return [("ETH/USDT", "5m"),
+                            ("BTC/USDT", "15m"),
+                            ]
+        """
+        return [("ETH/USDT:USDT", "3m"),
+                            ("BTC/USDT:USDT", "3m"),
+                            ("XRP/USDT:USDT", "3m")
+                            ]
 
     def feature_engineering_expand_basic(
             self, dataframe: DataFrame, metadata: Dict, **kwargs) -> DataFrame:
