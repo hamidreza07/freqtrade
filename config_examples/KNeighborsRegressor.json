@@ -65,7 +65,7 @@
             "include_shifted_candles": 2,
             "DI_threshold": 0.9,
             "weight_factor": 0.9,
-            "principal_component_analysis": true,
+            "principal_component_analysis": false,
             "use_SVM_to_remove_outliers": true,
             "indicator_periods_candles": [10, 20]
         },

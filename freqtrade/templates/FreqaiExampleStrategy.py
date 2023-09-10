@@ -253,7 +253,7 @@ class FreqaiExampleStrategy(IStrategy):
 
         enter_long_conditions = [
             df["do_predict"] == 1,
-            df["&-s_close"] > df[f"target_roi_{self.std_dev_multiplier_buy.value}"]* 0.25,
+            df["&-s_close"] > df[f"target_roi_{self.std_dev_multiplier_buy.value}"]* 0.125,
             ]
 
         if enter_long_conditions:
@@ -263,7 +263,7 @@ class FreqaiExampleStrategy(IStrategy):
 
         enter_short_conditions = [
             df["do_predict"] == 1,
-            df["&-s_close"] < df[f"sell_roi_{self.std_dev_multiplier_sell.value}"]* 0.25,
+            df["&-s_close"] < df[f"sell_roi_{self.std_dev_multiplier_sell.value}"]* 0.125,
             ]
 
         if enter_short_conditions:
@@ -276,14 +276,14 @@ class FreqaiExampleStrategy(IStrategy):
     def populate_exit_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
         exit_long_conditions = [
             df["do_predict"] == 1,
-            df["&-s_close"] < df[f"sell_roi_{self.std_dev_multiplier_sell.value}"] * 0.25,
+            df["&-s_close"] < df[f"sell_roi_{self.std_dev_multiplier_sell.value}"] * 0.125,
             ]
         if exit_long_conditions:
             df.loc[reduce(lambda x, y: x & y, exit_long_conditions), "exit_long"] = 1
 
         exit_short_conditions = [
             df["do_predict"] == 1,
-            df["&-s_close"] > df[f"target_roi_{self.std_dev_multiplier_buy.value}"] * 0.25,
+            df["&-s_close"] > df[f"target_roi_{self.std_dev_multiplier_buy.value}"] * 0.125,
             ]
         if exit_short_conditions:
             df.loc[reduce(lambda x, y: x & y, exit_short_conditions), "exit_short"] = 1
