@@ -21,7 +21,7 @@ nav:
         - REST API & FreqUI: rest-api.md
         - Web Hook: webhook-config.md
     - Data Downloading: data-download.md
-    - Backtesting: backtesting.md
+    - ing: ing.md
     - Lookahead analysis: lookahead-analysis.md
     - Hyperopt: hyperopt.md
     - FreqAI:
@@ -39,7 +39,7 @@ nav:
     - Data Analysis:
         - Jupyter Notebooks: data-analysis.md
         - Strategy analysis: strategy_analysis_example.md
-        - Backtest analysis: advanced-backtesting.md
+        -  analysis: advanced-ing.md
     - Advanced Topics:
         - Advanced Post-installation Tasks: advanced-setup.md
         - Trade Object: trade-object.md

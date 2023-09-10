@@ -17,7 +17,9 @@ class ARIMAModel(BaseRegressionModel):
     """
     User-created prediction model using ARIMA for time series forecasting.
     """
-
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.model = None 
     def fit(self, data_dictionary: Dict, dk: FreqaiDataKitchen, **kwargs) -> Any:
         """
         Fit an ARIMA model to the training data.
@@ -28,16 +30,17 @@ class ARIMAModel(BaseRegressionModel):
         """
 
 
-
+    
         X = data_dictionary["train_features"]
         y = data_dictionary["train_labels"]
 
 
         # Fit an ARIMA model (you can adjust the order and other parameters)
         config = self.freqai_info.get("model_training_parameters", {})
-        p,d,q = config.get("p",1),config.get("d",1),config.get("q",1)
+        p,d,q = config.get("p",1),config.get("d",0),config.get("q",1)
         basemodel = ARIMA(endog=y,exog=X, order=(p, d, q))
         model = basemodel.fit()
+        self.model = model
         return model
     def predict(
         self, unfiltered_df: DataFrame, dk: FreqaiDataKitchen, **kwargs
@@ -58,11 +61,11 @@ class ARIMAModel(BaseRegressionModel):
 
         dk.data_dictionary["prediction_features"], outliers, _ = dk.feature_pipeline.transform(
             dk.data_dictionary["prediction_features"], outlier_check=True)
-
-        predictions = self.model.predict(exog =dk.data_dictionary["prediction_features"])
+        exog=dk.data_dictionary["prediction_features"]
+        
+        predictions = self.model.forecast(steps=len(exog),exog =exog)
         if self.CONV_WIDTH == 1:
             predictions = np.reshape(predictions, (-1, len(dk.label_list)))
-
         pred_df = DataFrame(predictions, columns=dk.label_list)
 
         pred_df, _, _ = dk.label_pipeline.inverse_transform(pred_df)
