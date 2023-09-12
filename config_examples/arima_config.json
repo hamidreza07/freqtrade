@@ -51,7 +51,7 @@
         "enabled": true,
 		"save_backtest_models": true,
         "train_period_days": 10,
-        "backtest_period_days": 9,
+        "backtest_period_days": 5,
         "live_retrain_hours": 0,
         "identifier": "uniqe-id",
         "feature_parameters": {
