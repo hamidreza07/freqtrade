@@ -24,6 +24,5 @@ class H2ORegressor(BaseRegressionModel):
                     validation_frame=eval_set,
                   )
         
-        h2o.shutdown()  # Shutdown H2O
-
-        return model
+    
+        return model.checkpoint
