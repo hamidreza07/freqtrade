@@ -1,13 +1,13 @@
 import logging
 from functools import reduce
-from typing import Dict
+from typing import Dict,Optional
 
 import talib.abstract as ta
 from pandas import DataFrame
 from technical import qtpylib
 
 from freqtrade.strategy import CategoricalParameter, IStrategy
-
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,22 @@ class FreqaiExampleStrategy(IStrategy):
         )
 
         return dataframe
+    def leverage(self, pair: str, current_time: datetime, current_rate: float,
+                 proposed_leverage: float, max_leverage: float, entry_tag: Optional[str], side: str,
+                 **kwargs) -> float:
+        """
+        Customize leverage for each new trade. This method is only called in futures mode.
 
+        :param pair: Pair that's currently analyzed
+        :param current_time: datetime object, containing the current datetime
+        :param current_rate: Rate, calculated based on pricing settings in exit_pricing.
+        :param proposed_leverage: A leverage proposed by the bot.
+        :param max_leverage: Max leverage allowed on this pair
+        :param entry_tag: Optional entry_tag (buy_tag) if provided with the buy signal.
+        :param side: 'long' or 'short' - indicating the direction of the proposed trade
+        :return: A leverage amount, which is between 1.0 and max_leverage.
+        """
+        return 3.0
     def feature_engineering_expand_basic(
             self, dataframe: DataFrame, metadata: Dict, **kwargs) -> DataFrame:
         """
@@ -253,7 +268,7 @@ class FreqaiExampleStrategy(IStrategy):
 
         enter_long_conditions = [
             df["do_predict"] == 1,
-            df["&-s_close"] > df[f"target_roi_{self.std_dev_multiplier_buy.value}"]* 0.125,
+            df["&-s_close"] > df[f"target_roi_{self.std_dev_multiplier_buy.value}"],
             ]
 
         if enter_long_conditions:
@@ -263,7 +278,7 @@ class FreqaiExampleStrategy(IStrategy):
 
         enter_short_conditions = [
             df["do_predict"] == 1,
-            df["&-s_close"] < df[f"sell_roi_{self.std_dev_multiplier_sell.value}"]* 0.125,
+            df["&-s_close"] < df[f"sell_roi_{self.std_dev_multiplier_sell.value}"],
             ]
 
         if enter_short_conditions:
@@ -276,14 +291,14 @@ class FreqaiExampleStrategy(IStrategy):
     def populate_exit_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
         exit_long_conditions = [
             df["do_predict"] == 1,
-            df["&-s_close"] < df[f"sell_roi_{self.std_dev_multiplier_sell.value}"] * 0.125,
+            df["&-s_close"] < df[f"sell_roi_{self.std_dev_multiplier_sell.value}"] ,
             ]
         if exit_long_conditions:
             df.loc[reduce(lambda x, y: x & y, exit_long_conditions), "exit_long"] = 1
 
         exit_short_conditions = [
             df["do_predict"] == 1,
-            df["&-s_close"] > df[f"target_roi_{self.std_dev_multiplier_buy.value}"] * 0.125,
+            df["&-s_close"] > df[f"target_roi_{self.std_dev_multiplier_buy.value}"] ,
             ]
         if exit_short_conditions:
             df.loc[reduce(lambda x, y: x & y, exit_short_conditions), "exit_short"] = 1

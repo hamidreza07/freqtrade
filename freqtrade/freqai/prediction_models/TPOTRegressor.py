@@ -1,16 +1,14 @@
 import logging
 from typing import Any, Dict
-from autosklearn.regression import AutoSklearnRegressor
-from autosklearn.metrics import *
-
+import numpy as np
 from freqtrade.freqai.base_models.BaseRegressionModel import BaseRegressionModel
 from freqtrade.freqai.data_kitchen import FreqaiDataKitchen
-
+from tpot import TPOTRegressor
 
 logger = logging.getLogger(__name__)
 
 
-class AutoSklearnCustomRegressor(BaseRegressionModel):
+class TPOTRegressionModel(BaseRegressionModel):
     """
     User created prediction model. The class inherits IFreqaiModel, which
     means it has full access to all Frequency AI functionality. Typically,
@@ -28,19 +26,12 @@ class AutoSklearnCustomRegressor(BaseRegressionModel):
         :param dk: The datakitchen object for the current coin/model
         """
 
-        if self.freqai_info.get('data_split_parameters', {}).get('test_size', 0.1) == 0:
-            X_test = y_test = None
-        else:
-            X_test,y_test = data_dictionary["test_features"], data_dictionary["test_labels"]
-            
         X = data_dictionary["train_features"]
         y = data_dictionary["train_labels"]
 
-
-               
-        model = AutoSklearnRegressor(**self.model_training_parameters,metric=mean_squared_error)
+        model = TPOTRegressor(**self.model_training_parameters)
 
 
-        model.fit(X=X, y=y,X_test=X_test,y_test=y_test)
+        model.fit(X, y)
 
-        return model
+        return model.fitted_pipeline_

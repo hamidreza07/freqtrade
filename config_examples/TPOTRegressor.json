@@ -76,7 +76,7 @@
             "random_state": 1
         },
         "model_training_parameters": {  
-            "time_left_for_this_task":300,"n_jobs":-1
+            "generations":2, "population_size":2, "verbosity":2, "random_state":42
 
         }
     },

@@ -49,7 +49,7 @@
     ],
     "freqai": {
         "enabled": true,
-		"save_backtest_models": true,
+		"save_backtest_models": false,
         "train_period_days": 10,
         "backtest_period_days": 5,
         "live_retrain_hours": 0,
@@ -76,7 +76,15 @@
             "random_state": 1
         },
         "model_training_parameters": {  
-            "time_left_for_this_task":300,"n_jobs":-1
+            "ntrees": 100,             
+            "max_depth": 5,           
+            "learn_rate": 0.1,         
+            "min_rows": 10,            
+            "sample_rate": 0.8,        
+            "col_sample_rate": 0.8,    
+            "stopping_rounds": 10,     
+            "stopping_metric": "RMSE", 
+            "seed": 12345  
 
         }
     },
