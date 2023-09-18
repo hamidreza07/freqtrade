@@ -79,6 +79,22 @@
         },
         "model_training_parameters": {}
     },
+  
+    "telegram": {
+        "enabled": true,
+        "token": "6380924757:AAExFGPL_q1TSvRQu9PAB9Fzn-b7HCTSCLI",
+        "chat_id": "72576575"
+    },
+    "api_server": {
+        "enabled": true,
+        "listen_ip_address": "127.0.0.1",
+        "listen_port": 8080,
+        "verbosity": "error",
+        "jwt_secret_key": "somethingrandom",
+        "CORS_origins": [],
+        "username": "freqtrader",
+        "password": "123"
+    },
     "bot_name": "",
     "force_entry_enable": true,
     "initial_state": "running",
@@ -86,3 +102,4 @@
         "process_throttle_secs": 5
     }
 }
+

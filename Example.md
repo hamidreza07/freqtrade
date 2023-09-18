@@ -1,6 +1,6 @@
 # Trade by models:
 1. arima
-- freqtrade trade --strategy FreqaiExampleStrategy --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel OPTLightGBMRegressor --freqaimodel-path freqtrade/freqai/prediction_models/ 
+- freqtrade trade --strategy FreqaiExampleStrategy --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel GRIDARIMAModel --freqaimodel-path freqtrade/freqai/prediction_models/ 
 
 2. KNeighborsRegressorModel
 - freqtrade trade --strategy FreqaiExampleStrategy --strategy-path freqtrade/templates --config config_examples/KNeighborsRegressor.json --freqaimodel KNeighborsRegressorModel --freqaimodel-path freqtrade/freqai/prediction_models/ 
