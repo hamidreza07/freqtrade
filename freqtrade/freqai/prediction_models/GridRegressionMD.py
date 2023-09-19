@@ -9,7 +9,7 @@ from freqtrade.freqai.data_kitchen import FreqaiDataKitchen
 import numpy as np
 logger = logging.getLogger(__name__)
 
-class AutoSelectRegressor(BaseRegressionModel):
+class GridRegressionMD(BaseRegressionModel):
     """
     Automatically selects the best regression model based on RMSE.
     """

@@ -1,17 +1,18 @@
 import logging
 from typing import Any, Dict
-from sklearn.neural_network import MLPRegressor
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split, RandomizedSearchCV  # Use RandomizedSearchCV
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.metrics import mean_squared_error
-from scipy.stats import randint as sp_randint  # Import a random integer distribution
+from scipy.stats import randint as sp_randint
 from freqtrade.freqai.base_models.BaseRegressionModel import BaseRegressionModel
 from freqtrade.freqai.data_kitchen import FreqaiDataKitchen
 import numpy as np
+import xgboost as xgb
+from catboost import CatBoostRegressor
+
+
 logger = logging.getLogger(__name__)
 
-class RandomSelectRegressor(BaseRegressionModel):
+class RandomRegressionXC(BaseRegressionModel):
     """
     Automatically selects the best regression model based on RMSE.
     """
@@ -28,35 +29,38 @@ class RandomSelectRegressor(BaseRegressionModel):
         y = data_dictionary["train_labels"].iloc[:, -1]
 
         # Define the hyperparameter grids for different models
-        mlp_param_dist = {
-            'hidden_layer_sizes': sp_randint(50, 200),  # Random integer between 50 and 200
-            'activation': ['relu', 'tanh'],
-            'solver': ['adam'],
-            'alpha': [0.0001, 0.001],
-            'learning_rate': ['constant', 'invscaling'],
-            'max_iter': sp_randint(200, 400),  # Random integer between 200 and 400
-            # Add other hyperparameters and their distributions as needed
+        xgb_param_dist = {
+            'n_estimators': sp_randint(50, 200),
+            'max_depth': sp_randint(3, 10),
+            'learning_rate': [0.001, 0.01],
+            'subsample': [0.6, 0.7, 0.8],
+            'colsample_bytree': [0.6, 0.7, 0.8],
+            # Add other XGBoost-specific hyperparameters as needed
         }
 
-        random_forest_param_dist = {
-            'n_estimators': sp_randint(50, 200),  # Random integer between 50 and 200
-            'max_depth': [None] + list(range(5, 16)),  # Include None and integers from 5 to 15
-            'min_samples_split': sp_randint(2, 11),  # Random integer between 2 and 10
-            'min_samples_leaf': sp_randint(1, 5),  # Random integer between 1 and 4
-            # Add other hyperparameters and their distributions as needed
+        catboost_param_dist = {
+            'iterations': sp_randint(50, 200),
+            'depth': sp_randint(3, 10),
+            'learning_rate': [0.001, 0.01],
+            'subsample': [0.6, 0.7, 0.8],
+            'colsample_bylevel': [0.6, 0.7, 0.8],
+            # Add other CatBoost-specific hyperparameters as needed
         }
 
-        # Train MLPRegressor with RandomizedSearchCV
-        mlp_model = self.train_model(MLPRegressor(), mlp_param_dist, X, y, 'MLPRegressor')
 
 
-        # Train RandomForestRegressor with RandomizedSearchCV
-        random_forest_model = self.train_model(RandomForestRegressor(), random_forest_param_dist, X, y, 'RandomForestRegressor')
+        # Train XGBoost Regressor with RandomizedSearchCV
+        xgb_model = self.train_model(xgb.XGBRegressor(), xgb_param_dist, X, y, 'XGBoost Regressor')
+
+        # Train CatBoost Regressor with RandomizedSearchCV
+        catboost_model = self.train_model(CatBoostRegressor(), catboost_param_dist, X, y, 'CatBoost Regressor')
+
+
 
         # Compare RMSE and select the best model
         models = {
-            'MLPRegressor': mlp_model,
-            'RandomForestRegressor': random_forest_model
+            'XGBoost Regressor': xgb_model,
+            'CatBoost Regressor': catboost_model
         }
         best_model_name = min(models, key=lambda model_name: self.calculate_rmse(models[model_name], X, y))
 
@@ -71,11 +75,11 @@ class RandomSelectRegressor(BaseRegressionModel):
         randomized_search = RandomizedSearchCV(
             estimator=model,
             param_distributions=param_dist,
-            n_iter=20,  # Adjust the number of iterations as needed
+            n_iter=10,
             scoring='neg_mean_squared_error',
             cv=2,
             random_state=42,
-              n_jobs=-1 
+            n_jobs=-1
         )
         randomized_search.fit(X, y)
 

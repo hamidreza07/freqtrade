@@ -10,7 +10,7 @@ from catboost import CatBoostRegressor
 
 logger = logging.getLogger(__name__)
 
-class GridSelectXC(BaseRegressionModel):
+class GridRegressionXC(BaseRegressionModel):
     """
     Automatically selects the best regression model based on RMSE.
     """
@@ -37,11 +37,11 @@ class GridSelectXC(BaseRegressionModel):
         }
 
         catboost_param_grid = {
-            'iterations': [50, 100, 150, 200],
-            'depth': [3, 4, 5, 6, 7, 8, 9, 10],
-            'learning_rate': [0.001, 0.01, 0.1],
-            'subsample': [0.6, 0.7, 0.8, 0.9, 1.0],
-            'colsample_bylevel': [0.6, 0.7, 0.8, 0.9, 1.0],
+            'iterations': [50, 150],
+            'depth': [3, 9],
+            'learning_rate': [0.001, 0.01],
+            'subsample': [0.6, 1.0],
+            'colsample_bylevel': [ 0.9, 1.0],
             # Add other CatBoost-specific hyperparameters as needed
         }
 
