@@ -48,6 +48,7 @@
         }
     ],
     "freqai": {
+        "keras":true,
         "enabled": true,
         "purge_old_models": 10,
 		"save_backtest_models": false,
@@ -89,7 +90,7 @@
 
         }
     },
-  
+   
     "telegram": {
         "enabled": true,
         "token": "6380924757:AAExFGPL_q1TSvRQu9PAB9Fzn-b7HCTSCLI",

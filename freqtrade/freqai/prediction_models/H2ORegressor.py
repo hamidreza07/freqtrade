@@ -25,4 +25,4 @@ class H2ORegressor(BaseRegressionModel):
                   )
         
     
-        return model.checkpoint
+        return model

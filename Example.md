@@ -1,6 +1,6 @@
 # Trade by models:
 1. arima
-- freqtrade trade --strategy FreqaiExampleStrategy --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel GRIDARIMAModel --freqaimodel-path freqtrade/freqai/prediction_models/ 
+- freqtrade trade --strategy FreqaiExampleStrategy --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel SGRIDARIMAModel --freqaimodel-path freqtrade/freqai/prediction_models/ 
 
 2. KNeighborsRegressorModel
 - freqtrade trade --strategy FreqaiExampleStrategy --strategy-path freqtrade/templates --config config_examples/KNeighborsRegressor.json --freqaimodel KNeighborsRegressorModel --freqaimodel-path freqtrade/freqai/prediction_models/ 
@@ -10,7 +10,7 @@
 - freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230101-20230901 --pairs BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --erase --trading-mode futures
 
 2. run backtesting:
-- freqtrade backtesting -s FreqaiExampleStrategy --strategy-path freqtrade/templates  --freqaimodel TPOTRegressionModel --freqaimodel-path freqtrade/freqai/prediction_models --config config_examples/TPOTRegressor.json  -p BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --timerange 20230510-20230610
+- freqtrade backtesting -s FreqaiExampleStrategy --strategy-path freqtrade/templates  --freqaimodel XGBoostRegressor --freqaimodel-path freqtrade/freqai/prediction_models --config config_examples/TPOTRegressor.json  -p BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --timerange 20230501-20230601
 
 
 ## hyperparameter optimazer:

@@ -42,6 +42,7 @@ class SGRIDARIMAModel(BaseRegressionModel):
                 adf_p_value = adfuller(y)[1]
                 
                 if adf_p_value >= 0.05:  # Check if the data is stationary (p-value < 0.05)
+                    logger.info('The Data Is Not stationarity')
                     continue  # Skip this combination if not stationary
                 
                 results = model.fit()
