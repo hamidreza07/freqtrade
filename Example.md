@@ -10,7 +10,7 @@
 - freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230101-20230901 --pairs BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --erase --trading-mode futures
 
 2. run backtesting:
-- freqtrade backtesting -s FreqaiExampleStrategy --strategy-path freqtrade/templates  --freqaimodel RandomSelectRegressor --freqaimodel-path freqtrade/freqai/prediction_models --config config_examples/TPOTRegressor.json  -p BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --timerange 20230501-20230601
+- freqtrade backtesting -s FreqaiExampleStrategy2 --strategy-path freqtrade/templates  --freqaimodel GridSVMRegressor --freqaimodel-path freqtrade/freqai/prediction_models --config config_examples/config_freqai.example.json  -p BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --timerange 20230501-20230601
 
 
 ## hyperparameter optimazer:
