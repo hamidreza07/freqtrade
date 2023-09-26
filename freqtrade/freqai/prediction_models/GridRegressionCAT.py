@@ -10,7 +10,7 @@ from catboost import CatBoostRegressor
 
 logger = logging.getLogger(__name__)
 
-class GridRegressionXC(BaseRegressionModel):
+class GridRegressionCAT(BaseRegressionModel):
     """
     Automatically selects the best regression model based on RMSE.
     """
@@ -25,6 +25,10 @@ class GridRegressionXC(BaseRegressionModel):
 
         X = data_dictionary["train_features"]
         y = data_dictionary["train_labels"].iloc[:, -1]
+
+        # Split your test data into test features and labels
+        X_test = data_dictionary["test_features"]
+        y_test = data_dictionary["test_labels"].iloc[:, -1]
 
         # Define the hyperparameter grids for different models
         xgb_param_grid = {

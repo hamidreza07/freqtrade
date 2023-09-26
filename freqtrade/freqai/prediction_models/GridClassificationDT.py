@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any, Dict,Tuple
 from sklearn.neural_network import MLPClassifier  # Change to MLPClassifier for classification
 from sklearn.tree import DecisionTreeClassifier  # Change to DecisionTreeClassifier for classification
 from sklearn.ensemble import RandomForestClassifier
@@ -8,13 +8,14 @@ from sklearn.metrics import accuracy_score  # Change to classification metric
 from freqtrade.freqai.base_models.BaseClassifierModel import BaseClassifierModel  # Import classification base model
 from freqtrade.freqai.data_kitchen import FreqaiDataKitchen
 import numpy as np
+import numpy.typing as npt 
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from pandas.api.types import is_integer_dtype
-
+from pandas import DataFrame
 logger = logging.getLogger(__name__)
 
-class GridClassificationMD(BaseClassifierModel):  # Change to a classification base model
+class GridClassificationDT(BaseClassifierModel):  # Change to a classification base model
     """
     Automatically selects the best classification model based on accuracy.
     """
@@ -34,23 +35,12 @@ class GridClassificationMD(BaseClassifierModel):  # Change to a classification b
         if not is_integer_dtype(y):
             y = pd.Series(le.fit_transform(y.iloc[:, -1]), dtype="int64")
 
-        mlp_param_grid = {
-            'hidden_layer_sizes': [(50, 100), (100, 200)],
-            'activation': ['relu', 'tanh'],
-            'solver': ['adam'],
-            'alpha': [0.0001],
-            'learning_rate': ['constant'],
-            'max_iter': [500],  # Increase max_iter values
-        }
-
         decision_tree_param_grid = {
-            'max_depth': [ 5,  15],
-            'min_samples_split': [2, 10],
-            'min_samples_leaf': [1,  4],
+            'max_depth': [None] +[i for i in range(10,100,40)],  # Adjust the range as needed
+            'min_samples_split': [i for i in range(2,20,5)],
+            'min_samples_leaf': [i for i in range(2,20,5)]
         }
-
         # Train MLPClassifier for classification
-        mlp_model = self.train_model(MLPClassifier(), mlp_param_grid, X, y, 'MLPClassifier')
 
         # Train DecisionTreeClassifier for classification
         decision_tree_model = self.train_model(DecisionTreeClassifier(), decision_tree_param_grid, X, y, 'DecisionTreeClassifier')
@@ -58,9 +48,7 @@ class GridClassificationMD(BaseClassifierModel):  # Change to a classification b
         # Train RandomForestClassifier for classification
 
         # Compare accuracy and select the best model
-        best_model = self.select_best_model([mlp_model, decision_tree_model], X, y)
-
-        logger.info(f"Chosen model: {best_model.__class__.__name__}")
+        best_model = self.select_best_model([decision_tree_model], X, y)
 
         return best_model
 
@@ -68,7 +56,7 @@ class GridClassificationMD(BaseClassifierModel):  # Change to a classification b
         """
         Train a classification model using GridSearchCV and return the best model.
         """
-        grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='accuracy', cv=2)
+        grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='accuracy', cv=5, n_jobs=-1)
         grid_search.fit(X, y)
 
         best_params = grid_search.best_params_
@@ -94,3 +82,26 @@ class GridClassificationMD(BaseClassifierModel):  # Change to a classification b
         logger.info(f"Best accuracy : {best_accuracy}")
 
         return best_model
+    def predict(
+        self, unfiltered_df: DataFrame, dk: FreqaiDataKitchen, **kwargs
+    ) -> Tuple[DataFrame, npt.NDArray[np.int_]]:
+        """
+        Filter the prediction features data and predict with it.
+        :param unfiltered_df: Full dataframe for the current backtest period.
+        :return:
+        :pred_df: dataframe containing the predictions
+        :do_predict: np.array of 1s and 0s to indicate places where freqai needed to remove
+        data (NaNs) or felt uncertain about data (PCA and DI index)
+        """
+
+        (pred_df, dk.do_predict) = super().predict(unfiltered_df, dk, **kwargs)
+
+        le = LabelEncoder()
+        label = dk.label_list[0]
+        labels_before = list(dk.data['labels_std'].keys())
+        labels_after = le.fit_transform(labels_before).tolist()
+        pred_df[label] = le.inverse_transform(pred_df[label])
+        pred_df = pred_df.rename(
+            columns={labels_after[i]: labels_before[i] for i in range(len(labels_before))})
+
+        return (pred_df, dk.do_predict)
