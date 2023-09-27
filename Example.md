@@ -4,7 +4,7 @@
 freqtrade trade --strategy BolingerAI --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel RandomRegressionCAT --freqaimodel-path freqtrade/freqai/prediction_models/ 
 ```
 
-3. SVM:
+2. SVM:
 * Don't use SVM.I've tested before ; RMSE is very high.
 
 
