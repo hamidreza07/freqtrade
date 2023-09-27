@@ -24,10 +24,14 @@ class GridRegressionXGB(BaseRegressionModel):
         :param dk: The datakitchen object for the current coin/model
         """
 
-        X_train = data_dictionary["train_features"]
-        y_train = data_dictionary["train_labels"].iloc[:, -1]
-        X_test = data_dictionary["test_features"]
-        y_test = data_dictionary["test_labels"].iloc[:, -1]
+        X = data_dictionary["train_features"]
+        y = data_dictionary["train_labels"].iloc[:, -1]
+
+        if self.freqai_info.get('data_split_parameters', {}).get('test_size', 0.1) == 0:
+            X_test = None
+            y_test = None
+        else:
+            X_test, y_test = data_dictionary["test_features"], data_dictionary["test_labels"].iloc[:, -1]
 
         # Define the hyperparameter grids for different models
         xgb_param_grid = {
@@ -42,7 +46,7 @@ class GridRegressionXGB(BaseRegressionModel):
 
 
 
-        xgb_model = self.train_model(xgb.XGBRegressor(), xgb_param_grid, X_train, y_train,X_test,y_test)
+        xgb_model = self.train_model(xgb.XGBRegressor(), xgb_param_grid, X, y,X_test,y_test)
 
 
 
@@ -68,9 +72,13 @@ class GridRegressionXGB(BaseRegressionModel):
         best_model = grid_search.best_estimator_
         best_model.fit(X_train, y_train)
 
-        # Evaluate the best model on the test data
-        y_pred = best_model.predict(X_test)
-        test_rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-        logger.info(f"Test RMSE for : {test_rmse}")
+        # Check if X_test and y_test are not None or empty before evaluation
+        if X_test is not None and y_test is not None and len(X_test) > 0 and len(y_test) > 0:
+            # Evaluate the best model on the test data
+            y_pred = best_model.predict(X_test)
+            test_rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+            logger.info(f"Test RMSE: {test_rmse}")
+        else:
+            logger.info("Test data is empty or None, skipping evaluation.")
 
         return best_model

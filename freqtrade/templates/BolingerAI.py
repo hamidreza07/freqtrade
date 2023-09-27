@@ -22,7 +22,7 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 
 logger = logging.getLogger(__name__)
 # This class is a sample. Feel free to customize it.
-class Bolinger(IStrategy):
+class BolingerAI(IStrategy):
 
     INTERFACE_VERSION = 3
 
@@ -33,7 +33,9 @@ class Bolinger(IStrategy):
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
 
-        "0": 0.065
+        "0": 0.065,
+        "30":0.1,
+        "60":0.1
     }
 
     stoploss = -0.022
@@ -100,7 +102,7 @@ class Bolinger(IStrategy):
         dataframe["%-ema-period"] = ta.EMA(dataframe, timeperiod=period)
         """
 
-
+        
 
         bollinger = qtpylib.bollinger_bands(
             qtpylib.typical_price(dataframe), window=period, stds=2.2
@@ -127,14 +129,7 @@ class Bolinger(IStrategy):
         """ I Realy Dont Underestand This Sh"""
 
 
-        dataframe["&-s_close"] = (
-            dataframe["close"]
-            .shift(-self.freqai_info["feature_parameters"]["label_period_candles"])
-            .rolling(self.freqai_info["feature_parameters"]["label_period_candles"])
-            .mean()
-            / dataframe["close"]
-            - 1
-            )
+        dataframe['&-s_rsi'] = ta.RSI(dataframe, timeperiod = 14)
 
 
 
@@ -152,31 +147,29 @@ class Bolinger(IStrategy):
         dataframe["percent"] = (
                     (dataframe["close"] - dataframe["lowerband"]) /
                     (dataframe["upperband"] - dataframe["lowerband"]))
-        #RSI
-        dataframe['rsi'] = ta.RSI(dataframe, timeperiod = 14)
+        
+        
 
         return dataframe
 
 
     def populate_entry_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
-#========= Enter Long
-        enter_long_conditions = []
 
-        enter_long_conditions.append(qtpylib.crossed_above(df['rsi'],35)),
-        enter_long_conditions.append(df['percent'] < 0.30)
+        enter_long_conditions = [
+            df["do_predict"] == 1,
+            df["&-s_rsi"] > 30,  # Adjusted RSI threshold
+            df["percent"] > 0.8,  # Adjusted percent threshold
+        ]
 
         if enter_long_conditions:
             df.loc[
                 reduce(lambda x, y: x & y, enter_long_conditions), ["enter_long", "enter_tag"]
             ] = (1, "long")
-
-#========= Enter Short
-
-        enter_short_conditions = []
-        
-        enter_short_conditions.append((qtpylib.crossed_below(df['rsi'],65)))
-        enter_short_conditions.append(df['percent'] > 0.70)
-
+        enter_short_conditions = [
+            df["do_predict"] == 1,
+            df["&-s_rsi"] < 70,  # Adjusted RSI threshold
+            df["percent"] < 0.2,  # Adjusted percent threshold
+        ]
 
         if enter_short_conditions:
             df.loc[
@@ -185,34 +178,28 @@ class Bolinger(IStrategy):
 
         return df
 
+    def populate_exit_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
+        exit_long_conditions = [
+            df["do_predict"] == 1,
+            df["&-s_rsi"] < 30,  # Adjusted RSI threshold
+            df["percent"] < 0.4,  # Adjusted percent threshold
+        ]
 
-    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        if exit_long_conditions:
+            df.loc[reduce(lambda x, y: x & y, exit_long_conditions), "exit_long"] = 1
 
-        dataframe.loc[
-            (
-                #(qtpylib.crossed_above(dataframe['rsi'],70))&
-                #(dataframe['percent'] > 0.60)
+        exit_short_conditions = [
+            df["do_predict"] == 1,
+            df["&-s_rsi"] > 70,  # Adjusted RSI threshold
+            df["percent"] > 0.6,  # Adjusted percent threshold
+        ]
+        if exit_short_conditions:
+            df.loc[reduce(lambda x, y: x & y, exit_short_conditions), "exit_short"] = 1
 
-
-
-            ),
-
-            'exit_long'] = 1
-        dataframe.loc[
-            (
-                #(qtpylib.crossed_above(dataframe['rsi'],70))&
-                #(dataframe['percent'] > 0.60)
-
-
-
-            ),
-
-            'exit_short'] = 1
-
-        return dataframe
+        return df
 
     def leverage(self, pair: str, current_time: datetime, current_rate: float,
                 proposed_leverage: float, max_leverage: float, entry_tag: Optional[str], side: str,
                 **kwargs) -> float:
 
-        return 1
+        return 3
