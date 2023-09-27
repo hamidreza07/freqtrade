@@ -49,15 +49,19 @@ class GridRegressionDT(BaseRegressionModel):
         """
         Train a regression model using GridSearchCV and return the best model.
         """
-        grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring=make_scorer(rmse_scorer, greater_is_better=False), cv=2, n_jobs=-1, verbose=1)
+        grid_search = GridSearchCV(estimator=model,
+                                    param_grid=param_grid, 
+                                    scoring=make_scorer(rmse_scorer, greater_is_better=False), 
+                                    cv=2, 
+                                    n_jobs=-1, 
+                                    verbose=1)
         grid_search.fit(X, y)
+
+        best_model = grid_search.best_estimator_
 
         best_params = grid_search.best_params_
         logger.info(f"Best params: {best_params}")
         logger.info(f"Best Score: {grid_search.best_score_}")
-
-        best_model = grid_search.best_estimator_
-        best_model.fit(X, y)
 
         # Check if X_test and y_test are not None or empty before evaluation
         if X_test is not None and y_test is not None and len(X_test) > 0 and len(y_test) > 0:

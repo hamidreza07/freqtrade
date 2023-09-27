@@ -35,11 +35,11 @@ class GridRegressionXGB(BaseRegressionModel):
 
         # Define the hyperparameter grids for different models
         xgb_param_grid = {
-            'n_estimators': [i for i in range(10,100,5)],
-            'max_depth': [i for i in range(3,20,5)],
-            'learning_rate': [f for f in np.arange(0.0001, 0.001, 0.00029)],
-            'subsample': [f for f in np.arange(0.0001, 0.001, 0.00029)],
-            'colsample_bytree': [f for f in np.arange(0.03, 0.1, 0.02)],
+            'n_estimators': [i for i in range(10,100,20)],
+            'max_depth': [i for i in range(3,20,10)],
+            'learning_rate': [f for f in np.arange(0.0001, 0.001, 0.00015)],
+            'subsample': [f for f in np.arange(0.0001, 0.001, 0.00015)],
+            'colsample_bytree': [f for f in np.arange(0.03, 0.1, 0.015)],
             # Add other XGBoost-specific hyperparameters as needed
         }
 
@@ -63,15 +63,18 @@ class GridRegressionXGB(BaseRegressionModel):
             param_grid=param_grid,
             scoring=make_scorer(rmse_scorer, greater_is_better=False),
             cv=2,
-            n_jobs=-1
+            n_jobs=-1,
+            verbose=1
+
         )
+
+
+        grid_search.fit(X_train, y_train)
+        best_model = grid_search.best_estimator_
+
         best_params = grid_search.best_params_
         logger.info(f"Best params :{best_params}")
         logger.info(f"Best Score: {grid_search.best_score_}")
-
-        best_model = grid_search.best_estimator_
-        best_model.fit(X_train, y_train)
-
         # Check if X_test and y_test are not None or empty before evaluation
         if X_test is not None and y_test is not None and len(X_test) > 0 and len(y_test) > 0:
             # Evaluate the best model on the test data

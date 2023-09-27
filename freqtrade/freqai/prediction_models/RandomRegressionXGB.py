@@ -40,11 +40,11 @@ class RandomRegressionXGB(BaseRegressionModel):
 
         # Define the hyperparameter grids for different models
         xgb_param_dist =  {
-            'n_estimators': [i for i in range(10,100,5)],
-            'max_depth': [i for i in range(3,20,5)],
-            'learning_rate': [f for f in np.arange(0.0001, 0.001, 0.00029)],
-            'subsample': [f for f in np.arange(0.0001, 0.001, 0.00029)],
-            'colsample_bytree': [f for f in np.arange(0.03, 0.1, 0.02)],
+            'n_estimators': [i for i in range(10,100,2)],
+            'max_depth': [i for i in range(3,20,2)],
+            'learning_rate': [f for f in np.arange(0.0001, 0.001, 0.0001)],
+            'subsample': [f for f in np.arange(0.0001, 0.001, 0.0001)],
+            'colsample_bytree': [f for f in np.arange(0.03, 0.1, 0.01)],
             # Add other XGBoost-specific hyperparameters as needed
         }
 
@@ -64,9 +64,9 @@ class RandomRegressionXGB(BaseRegressionModel):
         randomized_search = RandomizedSearchCV(
             estimator=model,
             param_distributions=param_grid,
-            n_iter=20,
+            n_iter=200,
             scoring=make_scorer(rmse_scorer, greater_is_better=False),
-            cv=2,
+            cv=5,
             random_state=42,
             n_jobs=-1
         )
@@ -74,6 +74,8 @@ class RandomRegressionXGB(BaseRegressionModel):
 
         best_params = randomized_search.best_params_
         logger.info(f"Best params {best_params}")
+        logger.info(f"Best params : {randomized_search.best_score_}")
+        
         best_model = randomized_search.best_estimator_
         best_model.fit(X, y)
         if X_test is not None and y_test is not None and len(X_test) > 0 and len(y_test) > 0:
