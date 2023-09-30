@@ -6,7 +6,7 @@ from freqtrade.freqai.base_models.BasePyTorchRegressor import BasePyTorchRegress
 from freqtrade.freqai.data_kitchen import FreqaiDataKitchen
 from freqtrade.freqai.torch.PyTorchDataConvertor import (DefaultPyTorchDataConvertor,
                                                          PyTorchDataConvertor)
-from freqtrade.freqai.torch.PyTorchMLPModel import PyTorchMLPModel
+from freqtrade.freqai.torch.EnhancedPyTorchMLPModel import EnhancedPyTorchMLPModel
 from freqtrade.freqai.torch.PyTorchModelTrainer import PyTorchModelTrainer
 
 
@@ -61,7 +61,7 @@ class PyTorchMLPRegressor(BasePyTorchRegressor):
         """
 
         n_features = data_dictionary["train_features"].shape[-1]
-        model = PyTorchMLPModel(
+        model = EnhancedPyTorchMLPModel(
             input_dim=n_features,
             output_dim=1,
             **self.model_kwargs

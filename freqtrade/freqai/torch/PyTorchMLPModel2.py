@@ -7,7 +7,7 @@ from torch import nn
 logger = logging.getLogger(__name__)
 
 
-class PyTorchMLPModel(nn.Module):
+class PyTorchMLPModel2(nn.Module):
     """
     A multi-layer perceptron (MLP) model implemented using PyTorch.
 
@@ -37,26 +37,40 @@ class PyTorchMLPModel(nn.Module):
 
     def __init__(self, input_dim: int, output_dim: int, **kwargs):
         super().__init__()
+        # Existing layers
         hidden_dim: int = kwargs.get("hidden_dim", 256)
         dropout_percent: int = kwargs.get("dropout_percent", 0.2)
         n_layer: int = kwargs.get("n_layer", 1)
 
         self.input_layer = nn.Linear(input_dim, hidden_dim)
-        self.bn_input = nn.BatchNorm1d(hidden_dim)  # Add BatchNorm after the input layer
+        self.bn_input = nn.BatchNorm1d(hidden_dim)
         self.blocks = nn.Sequential(*[Block(hidden_dim, dropout_percent) for _ in range(n_layer)])
         self.output_layer = nn.Linear(hidden_dim, output_dim)
-        self.bn_output = nn.BatchNorm1d(hidden_dim)  # Add BatchNorm before the output layer
+        self.bn_output = nn.BatchNorm1d(hidden_dim)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(p=dropout_percent)
 
+        # New recurrent layers
+        rnn_type = kwargs.get("rnn_type", "lstm")  # "lstm" or "gru"
+        hidden_rnn_dim = kwargs.get("hidden_rnn_dim", 64)
+        num_rnn_layers = kwargs.get("num_rnn_layers", 1)
+
+        if rnn_type == "lstm":
+            self.rnn = nn.LSTM(hidden_dim, hidden_rnn_dim, num_layers=num_rnn_layers, batch_first=True)
+        elif rnn_type == "gru":
+            self.rnn = nn.GRU(hidden_dim, hidden_rnn_dim, num_layers=num_rnn_layers, batch_first=True)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.relu(self.bn_input(self.input_layer(x)))  # Apply BatchNorm after input layer
+        x = self.relu(self.bn_input(self.input_layer(x)))
         x = self.dropout(x)
         x = self.blocks(x)
-        x = self.bn_output(x)  # Apply BatchNorm before output layer
+
+        # Apply the RNN layer to the output of the MLP
+        rnn_out, _ = self.rnn(x)
+
+        x = self.bn_output(rnn_out[:, -1, :])  # Use the last time step's output
         x = self.output_layer(x)
         return x
-
 
 class Block(nn.Module):
     """
