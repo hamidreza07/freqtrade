@@ -1,7 +1,7 @@
 # Trade by models:
 1. Sample Model and Config running:
 ```bash
-freqtrade trade --strategy UTBot --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel GridRegressionDT --freqaimodel-path freqtrade/freqai/prediction_models/ 
+freqtrade trade --strategy UTBotAI --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel GridRegressionDT --freqaimodel-path freqtrade/freqai/prediction_models/ 
 ```
 
 2. SVM:

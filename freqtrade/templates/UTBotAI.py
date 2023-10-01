@@ -13,7 +13,7 @@ from datetime import datetime
 
 from functools import reduce
 
-class UTBot(IStrategy):
+class UTBotAI(IStrategy):
     
     INTERFACE_VERSION = 3
 
