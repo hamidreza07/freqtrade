@@ -1,13 +1,14 @@
 # Trade by models:
 1. Sample Model and Config running:
 ```bash
-freqtrade trade --strategy BolingerAI --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel RandomRegressionCAT --freqaimodel-path freqtrade/freqai/prediction_models/ 
+freqtrade trade --strategy UTBot --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel GridRegressionDT --freqaimodel-path freqtrade/freqai/prediction_models/ 
 ```
 
 2. SVM:
-* Don't use SVM.I've tested before ; RMSE is very high.
+* Don't use SVM.I've tested before ; RMSE was very high.
 
-
+3. Pytorch:
+* DO NOT CREATE ANOTHER CLASS OR FILE AT  freqai/torch PASS. IT'S ONLY ACCEPT ONE FILE AS A MODEL WITH THE EXACT NAME FOR CLASS AND FILE __PyTorchMLPModel__
 
 ## backtesting:
 1. download the data:
