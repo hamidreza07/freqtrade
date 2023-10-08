@@ -20,6 +20,18 @@ class UTBotAIMulti(IStrategy):
   
 
     minimal_roi = {"0": 0.01, "40":-1}
+    plot_config = {
+        "main_plot": {},
+        "subplots": {
+            "&-s_adx": {"prediction": {"color": "blue"}},
+            "&-s_atrend_l": {"prediction": {"color": "green"}},
+            "&-s_atrend_s": {"prediction": {"color": "red"}},
+
+            "do_predict": {
+                "do_predict": {"color": "brown"},
+            },
+        },
+    }
 
 
     trailing_stop = False

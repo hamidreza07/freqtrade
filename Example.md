@@ -31,6 +31,18 @@ freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230801
 freqtrade hyperopt -s FreqaiExampleStrategy --strategy-path freqtrade/templates  --freqaimodel ARIMAModel --freqaimodel-path freqtrade/freqai/prediction_models --config config_examples/arima_config.json --hyperopt-loss OnlyProfitHyperOptLoss -p BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT -e 40 --timerange 20230801-20230825
 ```
 
+## plot the backtest:
+
+1. download data:
+```bash
+freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230801-20230904 --pairs BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --erase --trading-mode futures
+```
+2. Run thic command:
+```bash
+freqtrade plot-dataframe --strategy SupertrendAI --strategy-path freqtrade/templates --export=trades --export-filename user_data/backtest_results/backtest-result.json   --userdir  user_data/  -c  config_examples/config_freqai.example.json --freqaimodel DecisionTreeClassifierMultiTarget --timerange 20230501-20230601 --freqaimodel-path freqtrade/freqai/prediction_models
+```
+
+
 * be carefull of train_period_days and backtest_period_days in running backtest and hyperparameter optimazer at freqai(sum of train_period_days and backtest_period_days must not be greater than time range)
 
 * Remove all - __pycache__ - file before backtesting and hyperopt:
