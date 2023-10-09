@@ -60,14 +60,12 @@ class freqai_test_multimodel_classifier_strat(IStrategy):
         dataframe["%-raw_price"] = dataframe["close"]
 
         return dataframe
-
     def feature_engineering_standard(self, dataframe: DataFrame, metadata: Dict, **kwargs):
 
         dataframe["%-day_of_week"] = dataframe["date"].dt.dayofweek
         dataframe["%-hour_of_day"] = dataframe["date"].dt.hour
 
         return dataframe
-
     def set_freqai_targets(self, dataframe: DataFrame, metadata: Dict, **kwargs):
 
         dataframe['&s-up_or_down'] = np.where(dataframe["close"].shift(-50) >

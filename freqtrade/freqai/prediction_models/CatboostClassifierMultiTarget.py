@@ -36,6 +36,7 @@ class CatboostClassifierMultiTarget(BaseClassifierModel):
             loss_function='MultiClass',
             train_dir=Path(dk.data_path),
             **self.model_training_parameters,
+            verbose=0
         )
 
         X = data_dictionary["train_features"]
