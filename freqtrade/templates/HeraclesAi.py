@@ -1,35 +1,35 @@
 import logging
 from functools import reduce
 from typing import Dict,Optional
+import ta
+from ta.utils import dropna
+import freqtrade.vendor.qtpylib.indicators as qtpylib
 
-import talib.abstract as ta
+
 from pandas import DataFrame
 from technical import qtpylib
 
-from freqtrade.strategy import CategoricalParameter, IStrategy,IntParameter
+from freqtrade.strategy import CategoricalParameter, IStrategy,DecimalParameter,IntParameter
 from datetime import datetime
+
 logger = logging.getLogger(__name__)
 
 
+class HeraclesAi(IStrategy):
+    """
+    Example strategy showing how the user connects their own
+    IFreqaiModel to the strategy.
 
-# Optimized With Sharpe Ratio and 1 year data
-# 199/40000:  30918 trades. 18982/3408/8528 Wins/Draws/Losses. Avg profit   0.39%. Median profit   0.65%. Total profit  119934.26007495 USDT ( 119.93%). Avg duration 8:12:00 min. Objective: -127.60220
+    Warning! This is a showcase of functionality,
+    which means that it is designed to show various functions of FreqAI
+    and it runs on all computers. We use this showcase to help users
+    understand how to build a strategy, and we use it as a benchmark
+    to help debug possible problems.
 
-class BandtasticAI(IStrategy):
-    INTERFACE_VERSION = 2
-    std_dev_multiplier_buy = CategoricalParameter(
-        [0.75, 1, 1.25, 1.5, 1.75], default=1.25, space="buy", optimize=True)
-    std_dev_multiplier_sell = CategoricalParameter(
-        [0.75, 1, 1.25, 1.5, 1.75], space="sell", default=1.25, optimize=True)
-    timeframe = '3m'
+    This means this is *not* meant to be run live in production.
+    """
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.162,
-        "69": 0.097,
-        "229": 0.061,
-        "566": 0
-    }
+    minimal_roi = {"0": 0.1, "240": -1}
 
     plot_config = {
         "main_plot": {},
@@ -40,42 +40,22 @@ class BandtasticAI(IStrategy):
             },
         },
     }
-    process_only_new_candles = True
-    stoploss = -0.345
 
+    process_only_new_candles = True
+    stoploss = -0.05
     use_exit_signal = True
+    # this is the maximum period fed to talib (timeframe independent)
     startup_candle_count: int = 40
     can_short = True
 
-    # Stoploss:
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.01
-    trailing_stop_positive_offset = 0.058
-    trailing_only_offset_is_reached = False
-
-    # Hyperopt Buy Parameters
-    buy_fastema = IntParameter(low=1, high=236, default=211, space='buy', optimize=True, load=True)
-    buy_slowema = IntParameter(low=1, high=126, default=364, space='buy', optimize=True, load=True)
-    buy_rsi = IntParameter(low=15, high=70, default=52, space='buy', optimize=True, load=True)
-    buy_mfi = IntParameter(low=15, high=70, default=30, space='buy', optimize=True, load=True)
-
-    buy_rsi_enabled = CategoricalParameter([True, False], space='buy', optimize=True, default=False)
-    buy_mfi_enabled = CategoricalParameter([True, False], space='buy', optimize=True, default=False)
-    buy_ema_enabled = CategoricalParameter([True, False], space='buy', optimize=True, default=False)
-    buy_trigger = CategoricalParameter(["bb_lower1", "bb_lower2", "bb_lower3", "bb_lower4"], default="bb_lower1", space="buy")
-
-    # Hyperopt Sell Parameters
-    sell_fastema = IntParameter(low=1, high=365, default=7, space='sell', optimize=True, load=True)
-    sell_slowema = IntParameter(low=1, high=365, default=6, space='sell', optimize=True, load=True)
-    sell_rsi = IntParameter(low=30, high=100, default=57, space='sell', optimize=True, load=True)
-    sell_mfi = IntParameter(low=30, high=100, default=46, space='sell', optimize=True, load=True)
-
-    sell_rsi_enabled = CategoricalParameter([True, False], space='sell', optimize=True, default=False)
-    sell_mfi_enabled = CategoricalParameter([True, False], space='sell', optimize=True, default=True)
-    sell_ema_enabled = CategoricalParameter([True, False], space='sell', optimize=True, default=False)
-    sell_trigger = CategoricalParameter(["sell-bb_upper1", "sell-bb_upper2", "sell-bb_upper3", "sell-bb_upper4"], default="sell-bb_upper2", space="sell")
+    std_dev_multiplier_buy = CategoricalParameter(
+        [0.75, 1, 1.25, 1.5, 1.75], default=1.25, space="buy", optimize=True)
+    std_dev_multiplier_sell = CategoricalParameter(
+        [0.75, 1, 1.25, 1.5, 1.75], space="sell", default=1.25, optimize=True)
+    buy_div_min = DecimalParameter(0, 1, default=0.16, decimals=2, space='buy')
+    buy_div_max = DecimalParameter(0, 1, default=0.75, decimals=2, space='buy')
+    buy_indicator_shift = IntParameter(0, 20, default=16, space='buy')
+    buy_crossed_indicator_shift = IntParameter(0, 20, default=9, space='buy')
     def feature_engineering_expand_all(self, dataframe: DataFrame, period: int,
                                        metadata: Dict, **kwargs) -> DataFrame:
         """
@@ -92,6 +72,7 @@ class BandtasticAI(IStrategy):
         Access metadata such as the current pair/timeframe with:
 
         `metadata["pair"]` `metadata["tf"]`
+
         More details on how these config defined parameters accelerate feature engineering
         in the documentation at:
 
@@ -104,11 +85,11 @@ class BandtasticAI(IStrategy):
         :param metadata: metadata of current pair
         dataframe["%-ema-period"] = ta.EMA(dataframe, timeperiod=period)
         """
-        dataframe["%-high"] = dataframe["high"]
-        dataframe["%-close"] = dataframe["close"]
-        dataframe["%-low"] = dataframe["low"] 
-        dataframe["%-open"] = dataframe["open"]
 
+        dataframe["%-close"] = dataframe['close']
+        dataframe["%-high"] = dataframe['high']
+        dataframe["%-open"] = dataframe['open']
+        dataframe["%-low"] = dataframe['low']
 
         return dataframe
     def leverage(self, pair: str, current_time: datetime, current_rate: float,
@@ -129,18 +110,72 @@ class BandtasticAI(IStrategy):
         return 3.0
     def feature_engineering_expand_basic(
             self, dataframe: DataFrame, metadata: Dict, **kwargs) -> DataFrame:
+        """
+        *Only functional with FreqAI enabled strategies*
+        This function will automatically expand the defined features on the config defined
+        `include_timeframes`, `include_shifted_candles`, and `include_corr_pairs`.
+        In other words, a single feature defined in this function
+        will automatically expand to a total of
+        `include_timeframes` * `include_shifted_candles` * `include_corr_pairs`
+        numbers of features added to the model.
+
+        Features defined here will *not* be automatically duplicated on user defined
+        `indicator_periods_candles`
+
+        All features must be prepended with `%` to be recognized by FreqAI internals.
+
+        Access metadata such as the current pair/timeframe with:
+
+        `metadata["pair"]` `metadata["tf"]`
+
+        More details on how these config defined parameters accelerate feature engineering
+        in the documentation at:
+
+        https://www.freqtrade.io/en/latest/freqai-parameter-table/#feature-parameters
+
+        https://www.freqtrade.io/en/latest/freqai-feature-engineering/#defining-the-features
+
+        :param dataframe: strategy dataframe which will receive the features
+        :param metadata: metadata of current pair
+        dataframe["%-pct-change"] = dataframe["close"].pct_change()
+        dataframe["%-ema-200"] = ta.EMA(dataframe, timeperiod=200)
+        """
         dataframe["%-pct-change"] = dataframe["close"].pct_change()
         dataframe["%-raw_volume"] = dataframe["volume"]
         dataframe["%-raw_price"] = dataframe["close"]
-
         return dataframe
 
     def feature_engineering_standard(
             self, dataframe: DataFrame, metadata: Dict, **kwargs) -> DataFrame:
+        """
+        *Only functional with FreqAI enabled strategies*
+        This optional function will be called once with the dataframe of the base timeframe.
+        This is the final function to be called, which means that the dataframe entering this
+        function will contain all the features and columns created by all other
+        freqai_feature_engineering_* functions.
+
+        This function is a good place to do custom exotic feature extractions (e.g. tsfresh).
+        This function is a good place for any feature that should not be auto-expanded upon
+        (e.g. day of the week).
+
+        All features must be prepended with `%` to be recognized by FreqAI internals.
+
+        Access metadata such as the current pair with:
+
+        `metadata["pair"]`
+
+        More details about feature engineering available:
+
+        https://www.freqtrade.io/en/latest/freqai-feature-engineering
+
+        :param dataframe: strategy dataframe which will receive the features
+        :param metadata: metadata of current pair
+        usage example: dataframe["%-day_of_week"] = (dataframe["date"].dt.dayofweek + 1) / 7
+        """
         dataframe["%-day_of_week"] = dataframe["date"].dt.dayofweek
         dataframe["%-hour_of_day"] = dataframe["date"].dt.hour
-
         return dataframe
+
     def set_freqai_targets(self, dataframe: DataFrame, metadata: Dict, **kwargs) -> DataFrame:
         """
         *Only functional with FreqAI enabled strategies*
@@ -159,28 +194,28 @@ class BandtasticAI(IStrategy):
         :param metadata: metadata of current pair
         usage example: dataframe["&-target"] = dataframe["close"].shift(-1) / dataframe["close"]
         """
-   
 
-        # Bollinger Bands 1,2,3 and 4
-        bollinger1 = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=1)
-        dataframe['&s-bb_lowerband1'] = bollinger1['lower']
-        # dataframe['bb_middleband1'] = bollinger1['mid']
-        dataframe['&s-bb_upperband1'] = bollinger1['upper']
+        dataframe['&-volatility_kcw'] = ta.volatility.keltner_channel_wband(
+            dataframe['high'],
+            dataframe['low'],
+            dataframe['close'],
+            window=20,
+            window_atr=10,
+            fillna=True,
+            original_version=True
+        )
 
-        bollinger2 = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
-        dataframe['&s-bb_lowerband2'] = bollinger2['lower']
-        # dataframe['bb_middleband2'] = bollinger2['mid']
-        dataframe['&s-bb_upperband2'] = bollinger2['upper']
+        dataframe['&-volatility_dcp'] = ta.volatility.donchian_channel_pband(
+            dataframe['high'],
+            dataframe['low'],
+            dataframe['close'],
+            window=10,
+            offset=0,
+            fillna=True
+        )
 
-        bollinger3 = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=3)
-        dataframe['&s-bb_lowerband3'] = bollinger3['lower']
-        # dataframe['bb_middleband3'] = bollinger3['mid']
-        dataframe['&s-bb_upperband3'] = bollinger3['upper']
+        
 
-        bollinger4 = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=4)
-        dataframe['&s-bb_lowerband4'] = bollinger4['lower']
-        # dataframe['bb_middleband4'] = bollinger4['mid']
-        dataframe['&s-bb_upperband4'] = bollinger4['upper']
         dataframe["&-s_close"] = (
             dataframe["close"]
             .shift(-self.freqai_info["feature_parameters"]["label_period_candles"])
@@ -189,25 +224,19 @@ class BandtasticAI(IStrategy):
             / dataframe["close"]
             - 1
             )
+        return dataframe
 
-        return dataframe   
-    
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
+        # All indicators must be populated by feature_engineering_*() functions
+
+        # the model will return all labels created by user in `set_freqai_targets()`
+        # (& appended targets), an indication of whether or not the prediction should be accepted,
+        # the target mean/std values for each of the labels created by user in
+        # `set_freqai_targets()` for each training period.
 
         dataframe = self.freqai.start(dataframe, metadata, self)
-        dataframe['rsi'] = ta.RSI(dataframe)
-        dataframe['mfi'] = ta.MFI(dataframe)
 
-
-        # Build EMA rows - combine all ranges to a single set to avoid duplicate calculations.
-        for period in set(
-                list(self.buy_fastema.range)
-                + list(self.buy_slowema.range)
-                + list(self.sell_fastema.range)
-                + list(self.sell_slowema.range)
-            ):
-            dataframe[f'EMA_{period}'] = ta.EMA(dataframe, timeperiod=period)
         for val in self.std_dev_multiplier_buy.range:
             dataframe[f'target_roi_{val}'] = (
                 dataframe["&-s_close_mean"] + dataframe["&-s_close_std"] * val
@@ -216,63 +245,35 @@ class BandtasticAI(IStrategy):
             dataframe[f'sell_roi_{val}'] = (
                 dataframe["&-s_close_mean"] - dataframe["&-s_close_std"] * val
                 )
-     
         return dataframe
 
     def populate_entry_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
-        enter_long_conditions = [
-            df["do_predict"] == 1,df['volume'] > 0]
+        d = df['&-volatility_dcp'].shift(self.buy_indicator_shift.value).div(
+            df['&-volatility_kcw'].shift(self.buy_crossed_indicator_shift.value))
         
 
 
-
-        if self.buy_rsi_enabled.value:
-            enter_long_conditions.append(df['rsi'] < self.buy_rsi.value)
-        if self.buy_mfi_enabled.value:
-            enter_long_conditions.append(df['mfi'] < self.buy_mfi.value)
-        if self.buy_ema_enabled.value:
-            enter_long_conditions.append(df[f'EMA_{self.buy_fastema.value}'] > df[f'EMA_{self.buy_slowema.value}'])
-
-        # TRIGGERS
-        if self.buy_trigger.value == 'bb_lower1':
-            enter_long_conditions.append(df["close"] < df['&s-bb_lowerband1'])
-        if self.buy_trigger.value == 'bb_lower2':
-            enter_long_conditions.append(df["close"] < df['&s-bb_lowerband2'])
-        if self.buy_trigger.value == 'bb_lower3':
-            enter_long_conditions.append(df["close"] < df['&s-bb_lowerband3'])
-        if self.buy_trigger.value == 'bb_lower4':
-            enter_long_conditions.append(df["close"] < df['&s-bb_lowerband4'])
-
+        enter_long_conditions = [
+            df["do_predict"] == 1,
+            d.between(self.buy_div_min.value, self.buy_div_max.value),
+            ]
 
         if enter_long_conditions:
             df.loc[
                 reduce(lambda x, y: x & y, enter_long_conditions), ["enter_long", "enter_tag"]
             ] = (1, "long")
+
         enter_short_conditions = [
-            df["do_predict"] == 1,  df['volume'] > 0]
- 
-        if self.sell_rsi_enabled.value:
-            enter_short_conditions.append(df['rsi'] > self.sell_rsi.value)
-        if self.sell_mfi_enabled.value:
-            enter_short_conditions.append(df['mfi'] > self.sell_mfi.value)
-        if self.sell_ema_enabled.value:
-            enter_short_conditions.append(df[f'EMA_{self.sell_fastema.value}'] < df[f'EMA_{self.sell_slowema.value}'])
-
-        # TRIGGERS
-        if self.sell_trigger.value == 'sell-bb_upper1':
-            enter_short_conditions.append(df["close"] > df['&s-bb_upperband1'])
-        if self.sell_trigger.value == 'sell-bb_upper2':
-            enter_short_conditions.append(df["close"] > df['&s-bb_upperband2'])
-        if self.sell_trigger.value == 'sell-bb_upper3':
-            enter_short_conditions.append(df["close"] > df['&s-bb_upperband3'])
-        if self.sell_trigger.value == 'sell-bb_upper4':
-            enter_short_conditions.append(df["close"] > df['&s-bb_upperband4'])
-
+            df["do_predict"] == 1,
+            d < self.buy_div_min.value,
+            d > self.buy_div_max.value
+            ]
 
         if enter_short_conditions:
             df.loc[
                 reduce(lambda x, y: x & y, enter_short_conditions), ["enter_short", "enter_tag"]
             ] = (1, "short")
+
         return df
 
     def populate_exit_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
