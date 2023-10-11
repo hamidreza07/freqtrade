@@ -22,7 +22,7 @@
         "ccxt_async_config": {},
         "pair_whitelist": [
             "BTC/USDT:USDT",
-            "ETH/USDT:USDT" ,  
+            "ETH/USDT:USDT",
             "XRP/USDT:USDT"
         ],
         "pair_blacklist": []
@@ -72,13 +72,14 @@
                 20
             ],
             "plot_feature_importances": 0
-        },
+        }, 
+        "multitarget_parallel_training":false,
         "data_split_parameters": {
-            "test_size": 0.33,
+            "test_size": 0,
             "random_state": 1
         },
         "model_training_parameters": {               
-
+           
             }
     
     

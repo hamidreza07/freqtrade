@@ -37,8 +37,8 @@ class RandomCatboostClassifierMultiTarget(BaseClassifierModel):
         learning_rates = [0.001,0.005, 0.01]
         colsample_bylevels = [0.6, 0.8]
 
-        best_accuracy_train = float('inf')
-        best_accuracy_test = float('inf')
+        best_accuracy_train = 0
+        best_accuracy_test = 0
         best_params = {}
         best_model = None  # Initialize the best model
         parameter_combinations = list(itertools.product(iterations, depths, learning_rates, colsample_bylevels))
@@ -95,15 +95,18 @@ class RandomCatboostClassifierMultiTarget(BaseClassifierModel):
             # Calculate accuracy for training dataset
             y_train_pred = model.predict(X)
             train_accuracy_predict = self.accuracy_score(y, y_train_pred)
-            
-            y_test = model.predict(data_dictionary["test_features"])
+            if not all(item is None for item in eval_sets):
 
-            test_accuracy_predict = self.accuracy_score(y_test, data_dictionary["test_labels"])
+                y_test = model.predict(data_dictionary["test_features"])
+
+                test_accuracy_predict = self.accuracy_score(y_test, data_dictionary["test_labels"])
 
 
-            if test_accuracy_predict < best_accuracy_test :
+            if train_accuracy_predict > best_accuracy_test :
                 best_accuracy_train = train_accuracy_predict
-                best_accuracy_test = test_accuracy_predict
+                if not all(item is None for item in eval_sets):
+
+                    best_accuracy_test = test_accuracy_predict
                 best_params = {
                     'iterations': iteration,
                     'depth': depth,
@@ -114,8 +117,9 @@ class RandomCatboostClassifierMultiTarget(BaseClassifierModel):
                 best_model = model  # Update the best model
 
         logger.info(f"Best accuracy train: {best_accuracy_train:.2f}")
+        if not all(item is None for item in eval_sets):
 
-        logger.info(f"Best accuracy test: {best_accuracy_test:.2f}")
+            logger.info(f"Best accuracy test: {best_accuracy_test:.2f}")
 
         logger.info(f"Best Parameters: {best_params}")
 

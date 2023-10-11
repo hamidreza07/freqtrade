@@ -20,6 +20,7 @@ class RandomCatBoostRegressorMultiTarget(BaseRegressionModel):
         sample_weight = data_dictionary["train_weights"]
 
         best_rmse_train = float('inf')
+        best_rmse_test = float('inf')
         best_params = {}
         best_model = None  # Initialize the best model
 
@@ -87,10 +88,15 @@ class RandomCatBoostRegressorMultiTarget(BaseRegressionModel):
             # Calculate RMSE for training dataset
             y_train_pred = model.predict(X)
             train_rmse_predict = sqrt(mean_squared_error(y, y_train_pred))
+            if not all(item is None for item in eval_sets):
+                y_test = model.predict(data_dictionary["test_features"])
+
+                test_rmse_predict = sqrt(mean_squared_error(y_test, data_dictionary["test_labels"]))
 
             if train_rmse_predict < best_rmse_train:
                 best_rmse_train = train_rmse_predict
-
+                if not all(item is None for item in eval_sets):
+                    best_rmse_test = test_rmse_predict
                 best_params = {
                     'iterations': iterations,
                     'depth': depth,
@@ -99,6 +105,10 @@ class RandomCatBoostRegressorMultiTarget(BaseRegressionModel):
                 best_model = model  # Update the best model
 
         logger.info(f"Best rmse train: {best_rmse_train}")
+        if not all(item is None for item in eval_sets):
+
+            logger.info(f"Best rmse test: {best_rmse_test}")
+
         logger.info(f"Best Parameters: {best_params}")
 
         return best_model

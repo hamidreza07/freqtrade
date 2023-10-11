@@ -38,11 +38,11 @@ class GridRegressionDTMultiTarget(BaseRegressionModel):
         x_train = data_dictionary["train_features"]
         y_train = data_dictionary["train_labels"]
         sample_weight = data_dictionary["train_weights"]
-        max_depths = [None] + [i for i in range(10, 100, 10)]
-        min_samples_splits = [i for i in range(2, 20, 3)]
-        min_samples_leafs = [i for i in range(2, 20, 3)]
-        max_leaf_nodes = [i for i in range(2, 20, 2)]
-
+        max_depths = [None] + [i for i in range(10, 100, 30)]
+        min_samples_splits = [i for i in range(2, 20, 7)]
+        min_samples_leafs = [i for i in range(2, 20, 7)]
+        max_leaf_nodes = [i for i in range(2, 20, 7)]
+        logger.info(f"total models: {len(max_depths)*len(min_samples_leafs)*len(min_samples_splits,len(max_leaf_nodes))}")
         for max_depth in max_depths:
             for min_samples_split in min_samples_splits:
                 for min_samples_leaf in min_samples_leafs:
@@ -59,6 +59,9 @@ class GridRegressionDTMultiTarget(BaseRegressionModel):
         
 
                         model = FreqaiMultiOutputRegressor(estimator=dt_regressor)
+                        thread_training = self.freqai_info.get('multitarget_parallel_training', False)
+                        if thread_training:
+                                model.n_jobs = y_train.shape[1]
                         fit_params = [{} for _ in range(y_train.shape[1])]
 
                         # Fit the model with the current parameter combination
@@ -67,15 +70,17 @@ class GridRegressionDTMultiTarget(BaseRegressionModel):
                         # Calculate RMSE for training dataset
                         y_train_pred = model.predict(x_train)
                         train_rmse_predict = sqrt(mean_squared_error(y_train, y_train_pred))
+                        if not data_dictionary['test_features'].empty:
 
-                        y_test = model.predict(data_dictionary["test_features"])
+                            y_test = model.predict(data_dictionary["test_features"])
 
-                        test_rmse_predict = sqrt(mean_squared_error(y_test, data_dictionary["test_labels"]))
+                            test_rmse_predict = sqrt(mean_squared_error(y_test, data_dictionary["test_labels"]))
 
 
                         if train_rmse_predict < best_rmse_train :
                             best_rmse_train = train_rmse_predict
-                            best_rmse_test = test_rmse_predict
+                            if not data_dictionary['test_features'].empty:
+                                best_rmse_test = test_rmse_predict
 
                             best_params = {
                                 "max_depth": max_depth,
@@ -85,8 +90,8 @@ class GridRegressionDTMultiTarget(BaseRegressionModel):
                             best_model = model  # Update the best model
 
         logger.info(f"Best rmse train: {best_rmse_train}")
-
-        logger.info(f"Best rmse test: {best_rmse_test}")
+        if not data_dictionary['test_features'].empty:
+            logger.info(f"Best rmse test: {best_rmse_test}")
 
         logger.info(f"Best Parameters: {best_params}")
 

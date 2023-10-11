@@ -28,8 +28,8 @@ class GridClassifierDTMultiTarget(BaseClassifierModel):
         """
 
 
-        best_accuracy_train = float('inf')
-        best_accuracy_test = float('inf')
+        best_accuracy_train = 0
+        best_accuracy_test = 0
         best_params = {}
         best_model = None  # Initialize the best model
 
@@ -57,6 +57,9 @@ class GridClassifierDTMultiTarget(BaseClassifierModel):
         
 
                         model = FreqaiMultiOutputClassifier(estimator=dt_regressor)
+                        thread_training = self.freqai_info.get('multitarget_parallel_training', False)
+                        if thread_training:
+                                model.n_jobs = y_train.shape[1]
                         fit_params = [{} for _ in range(y_train.shape[1])]
 
                         # Fit the model with the current parameter combination
@@ -65,15 +68,16 @@ class GridClassifierDTMultiTarget(BaseClassifierModel):
                         # Calculate accuracy for training dataset
                         y_train_pred = model.predict(x_train)
                         train_accuracy_predict = self.accuracy_score(y_train, y_train_pred)
+                        if not data_dictionary['test_features'].empty:
+                            y_test = model.predict(data_dictionary["test_features"])
 
-                        y_test = model.predict(data_dictionary["test_features"])
-
-                        test_accuracy_predict = self.accuracy_score(y_test, data_dictionary["test_labels"])
+                            test_accuracy_predict = self.accuracy_score(y_test, data_dictionary["test_labels"])
 
 
-                        if train_accuracy_predict < best_accuracy_train :
+                        if train_accuracy_predict > best_accuracy_train :
                             best_accuracy_train = train_accuracy_predict
-                            best_accuracy_test = test_accuracy_predict
+                            if not data_dictionary['test_features'].empty:
+                                best_accuracy_test = test_accuracy_predict
 
                             best_params = {
                                 "max_depth": max_depth,
@@ -83,8 +87,8 @@ class GridClassifierDTMultiTarget(BaseClassifierModel):
                             best_model = model  # Update the best model
 
         logger.info(f"Best accuracy train: {best_accuracy_train:.2f}")
-
-        logger.info(f"Best accuracy test: {best_accuracy_test:.2f}")
+        if not data_dictionary['test_features'].empty:
+            logger.info(f"Best accuracy test: {best_accuracy_test:.2f}")
 
         logger.info(f"Best Parameters: {best_params}")
 

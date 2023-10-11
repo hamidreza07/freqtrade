@@ -48,6 +48,10 @@ class RandomRegressionDTMultiTarget(BaseRegressionModel):
             )
 
             model = FreqaiMultiOutputRegressor(estimator=dt_regressor)
+
+            thread_training = self.freqai_info.get('multitarget_parallel_training', False)
+            if thread_training:
+                    model.n_jobs = y_train.shape[1]
             fit_params = [{} for _ in range(y_train.shape[1])]
 
             # Fit the model with the current random parameter combination
@@ -56,13 +60,15 @@ class RandomRegressionDTMultiTarget(BaseRegressionModel):
             # Calculate RMSE for training dataset
             y_train_pred = model.predict(x_train)
             train_rmse_predict = sqrt(mean_squared_error(y_train, y_train_pred))
+            if not data_dictionary['test_features'].empty:
 
-            y_test = model.predict(data_dictionary["test_features"])
-            test_rmse_predict = sqrt(mean_squared_error(y_test, data_dictionary["test_labels"]))
+                y_test = model.predict(data_dictionary["test_features"])
+                test_rmse_predict = sqrt(mean_squared_error(y_test, data_dictionary["test_labels"]))
 
             if train_rmse_predict < best_rmse_train:
                 best_rmse_train = train_rmse_predict
-                best_rmse_test = test_rmse_predict
+                if not data_dictionary['test_features'].empty:
+                    best_rmse_test = test_rmse_predict
 
                 best_params = {
                     "max_depth": max_depth,
@@ -73,7 +79,8 @@ class RandomRegressionDTMultiTarget(BaseRegressionModel):
                 best_model = model  # Update the best model
 
         logger.info(f"Best rmse train: {best_rmse_train}")
-        logger.info(f"Best rmse test: {best_rmse_test}")
+        if not data_dictionary['test_features'].empty:
+            logger.info(f"Best rmse test: {best_rmse_test}")
         logger.info(f"Best Parameters: {best_params}")
 
         return best_model
