@@ -1,7 +1,7 @@
 # Trade by models:
 1. Sample Model and Config running:
 ```bash
-freqtrade trade --strategy UTBotAI --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel DecisionTreeRegressorMultiTarget --freqaimodel-path freqtrade/freqai/prediction_models/ 
+freqtrade trade --strategy SupertrendAI --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel CatboostClassifierMultiTarget --freqaimodel-path freqtrade/freqai/prediction_models/ 
 ```
 
 2. SVM:
@@ -35,11 +35,11 @@ freqtrade hyperopt -s FreqaiExampleStrategy --strategy-path freqtrade/templates 
 
 1. download data:
 ```bash
-freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230801-20230904 --pairs BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --erase --trading-mode futures
+freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230501-20230801 --pairs BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --erase --trading-mode futures
 ```
 2. Run thic command:
 ```bash
-freqtrade plot-dataframe --strategy SupertrendAI --strategy-path freqtrade/templates --export=trades --export-filename user_data/backtest_results/backtest-result.json   --userdir  user_data/  -c  config_examples/config_freqai.example.json --freqaimodel DecisionTreeClassifierMultiTarget --timerange 20230501-20230601 --freqaimodel-path freqtrade/freqai/prediction_models
+freqtrade plot-dataframe --strategy SupertrendAI --strategy-path freqtrade/templates --export=trades --export-filename user_data/backtest_results/backtest-result.json   --userdir  user_data/  -c  config_examples/config_freqai.example.json --freqaimodel CatboostClassifierMultiTarget --timerange 20230601-20230701 --freqaimodel-path freqtrade/freqai/prediction_models
 ```
 
 

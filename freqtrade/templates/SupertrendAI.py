@@ -33,9 +33,7 @@ class SupertrendAI(IStrategy):
         "main_plot": {},
         "subplots": {
             "prediction": {"prediction": {"color": "blue"}},
-            "target_roi": {
-                "target_roi": {"color": "brown"},
-            },
+
             "do_predict": {
                 "do_predict": {"color": "brown"},
             },
@@ -79,7 +77,7 @@ class SupertrendAI(IStrategy):
     trailing_stop_positive_offset = 0.144
     trailing_only_offset_is_reached = False
 
-    timeframe = '5m'
+    timeframe = '3m'
 
     startup_candle_count = 18
 

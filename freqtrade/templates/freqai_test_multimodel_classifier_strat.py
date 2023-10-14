@@ -73,7 +73,6 @@ class freqai_test_multimodel_classifier_strat(IStrategy):
 
         dataframe['&s-up_or_down2'] = np.where(dataframe["close"].shift(-100) >
                                                dataframe["close"], 'up2', 'down2')
-        dataframe.to_csv(r'set_freqai_targets.csv')
         
 
         return dataframe
