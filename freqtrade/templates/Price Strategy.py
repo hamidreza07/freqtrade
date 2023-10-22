@@ -7,7 +7,7 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 from freqtrade.strategy import IStrategy, CategoricalParameter, DecimalParameter, IntParameter, RealParameter
 
 
-class EmaEng(IStrategy):
+class PriceStrategy(IStrategy):
 
     timeframe = '5m'
 

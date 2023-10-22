@@ -63,7 +63,12 @@ class BBvwap(IStrategy):
         # Calculate the VWAP
      
         dataframe['VWAP'] = qtpylib.rolling_vwap(dataframe)
-        
+                # Calculate the VWAP
+        # dataframe['TypicalPrice'] = (dataframe['high'] + dataframe['low'] + dataframe['close']) / 3
+        # dataframe['TypicalPriceVolume'] = dataframe['TypicalPrice'] * dataframe['volume']
+        # dataframe['CumulativeTPV'] = dataframe['TypicalPriceVolume'].cumsum()
+        # dataframe['CumulativeVolume'] = dataframe['volume'].cumsum()
+        # dataframe['VWAP'] = dataframe['CumulativeTPV'] / dataframe['CumulativeVolume']
 
         return dataframe
 
