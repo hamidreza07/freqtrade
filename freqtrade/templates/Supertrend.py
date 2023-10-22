@@ -60,7 +60,7 @@ class Supertrend(IStrategy):
     trailing_stop_positive_offset = 0.144
     trailing_only_offset_is_reached = False
 
-    timeframe = '5m'
+    timeframe = '3m'
 
     startup_candle_count = 18
 
@@ -126,18 +126,17 @@ class Supertrend(IStrategy):
         return dataframe
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        # dataframe.loc[
-        #     (
-        #        (dataframe[f'supertrend_1_sell_{self.sell_m1.value}_{self.sell_p1.value}'] == 'down')
+        dataframe.loc[
+            (
+             (dataframe[f'supertrend_3_sell_{self.sell_m3.value}_{self.sell_p3.value}'] == 'down')
+            ),
+            'exit_long'] = 1
+        dataframe.loc[
+            (
+                (dataframe[f'supertrend_3_buy_{self.buy_m3.value}_{self.buy_p3.value}'] == 'up')
 
-        #     ),
-        #     'exit_long'] = 1
-        # dataframe.loc[
-        #     (
-        #        (dataframe[f'supertrend_1_sell_{self.sell_m1.value}_{self.sell_p1.value}'] == 'up')
-
-        #     ),
-        #     'exit_short'] = 1
+            ),
+            'exit_short'] = 1
 
 
         return dataframe
