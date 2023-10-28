@@ -18,11 +18,16 @@ class BBvwap(IStrategy):
     minimal_roi = {
         "0": 0.1,
         "69": 0.15,
+        "119":0.05,
+        "179":0,
+        "239":-1
+
+
 
     }
 
     # Stoploss:
-    stoploss = -0.99
+    stoploss = -0.05
 
 
 
@@ -62,30 +67,48 @@ class BBvwap(IStrategy):
         dataframe['bbr'] = bbr
         # Calculate the VWAP
      
-        dataframe['VWAP'] = qtpylib.rolling_vwap(dataframe)
+        # dataframe['VWAP'] = qtpylib.rolling_vwap(dataframe)
                 # Calculate the VWAP
-        # dataframe['TypicalPrice'] = (dataframe['high'] + dataframe['low'] + dataframe['close']) / 3
-        # dataframe['TypicalPriceVolume'] = dataframe['TypicalPrice'] * dataframe['volume']
-        # dataframe['CumulativeTPV'] = dataframe['TypicalPriceVolume'].cumsum()
-        # dataframe['CumulativeVolume'] = dataframe['volume'].cumsum()
-        # dataframe['VWAP'] = dataframe['CumulativeTPV'] / dataframe['CumulativeVolume']
+        dataframe['TypicalPrice'] = (dataframe['high'] + dataframe['low'] + dataframe['close']) / 3
+        dataframe['TypicalPriceVolume'] = dataframe['TypicalPrice'] * dataframe['volume']
+        dataframe['CumulativeTPV'] = dataframe['TypicalPriceVolume'].cumsum()
+        dataframe['CumulativeVolume'] = dataframe['volume'].cumsum()
+        dataframe['VWAP'] = dataframe['CumulativeTPV'] / dataframe['CumulativeVolume']
 
         return dataframe
 
     def populate_entry_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
+        
+        df['open_close_low_high_gt_vwap'] = np.where(
+        (df['open'] > df['VWAP']) &
+        (df['close'] > df['VWAP']) &
+        (df['low'] > df['VWAP']) &
+        (df['high'] > df['VWAP']), 1, 0
+    )
+
+        # Initialize a variable for the cumulative sum
+        cumulative_sum_high = 0
+
+
+
+        # Create a new column for the cumulative sum
+        df['cumulative_sum_column_high'] = 0
+
+        for index, row in df.iterrows():
+            if row['open_close_low_high_gt_vwap'] == 0 :
+                cumulative_sum_high = 0  # Reset the cumulative sum
+            else:
+            # Update the cumulative sum
+                cumulative_sum_high += 1
+
+            # Update the cumulative sum column in the DataFrame
+            df.at[index, 'cumulative_sum_column_high'] = cumulative_sum_high
         enter_long_conditions = [
             df["rsi"] < self.entry_rsi_lower.value,
             df['bbr'] < 0,
+            df['cumulative_sum_column_high']>=15
         ]
-        # # Check for the last 15 consecutive candles with OHLC > VWAP
-        last_15_candles = df.iloc[-15:]
-        last_15_candles_ohlc_greater_than_vwap = last_15_candles[(last_15_candles['open']>last_15_candles['VWAP'])& (last_15_candles['low']>last_15_candles['VWAP'])
-                                                                 & (last_15_candles['close']>last_15_candles['VWAP'])& (last_15_candles['high']>last_15_candles['VWAP'])]
-        logger.info(last_15_candles[['VWAP','high','low','close','open']])
-        if len(last_15_candles_ohlc_greater_than_vwap)==15:
-            enter_long_conditions.append(True)
-        else:
-            enter_long_conditions.append(False)
+
 
 
         if (enter_long_conditions):
@@ -93,18 +116,36 @@ class BBvwap(IStrategy):
                 reduce(lambda x, y: x & y, enter_long_conditions), ["enter_long", "enter_tag"]
             ] = (1, "long")
 
+
+
+        df['open_close_low_high_lt_vwap'] = np.where(
+        (df['open'] < df['VWAP']) &
+        (df['close'] < df['VWAP']) &
+        (df['low'] < df['VWAP']) &
+        (df['high'] < df['VWAP']), 1, 0
+    )
+
+        # Initialize a variable for the cumulative sum
+        cumulative_sum_low = 0
+
+        df['cumulative_sum_high_low'] = 0
+
+        for index, row in df.iterrows():
+            if row['open_close_low_high_lt_vwap'] == 0 :
+                cumulative_sum_low = 0  # Reset the cumulative sum
+            else:
+                 # Update the cumulative sum
+                cumulative_sum_low += 1
+
+            # Update the cumulative sum column in the DataFrame
+            df.at[index, 'cumulative_sum_high_low'] = cumulative_sum_low
         enter_short_conditions = [
             df["rsi"] > self.entry_rsi_upper.value,
             df['bbr'] > 1,
+            df['cumulative_sum_high_low']>=15
         ]
 
-        last_15_candles_ohlc_less_than_vwap = last_15_candles[(last_15_candles['open']<last_15_candles['VWAP'])& (last_15_candles['low']<last_15_candles['VWAP'])
-                                                                 & (last_15_candles['close']<last_15_candles['VWAP'])& (last_15_candles['high']<last_15_candles['VWAP'])]
-        
-        if len(last_15_candles_ohlc_less_than_vwap)==15:
-            enter_short_conditions.append(True)
-        else:
-            enter_short_conditions.append(False)
+
         if (enter_short_conditions) :
             df.loc[
                 reduce(lambda x, y: x & y, enter_short_conditions), ["enter_short", "enter_tag"]
