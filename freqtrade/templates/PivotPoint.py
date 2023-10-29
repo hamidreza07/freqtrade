@@ -23,12 +23,9 @@ class PivotPoint(IStrategy):
 
 
     }
-
     # Stoploss:
     stoploss = -0.05
-
-
-
+   
     entry_rsi_upper = IntParameter(low=15, high=70, default=55, space='buy', optimize=True, load=True)
     entry_rsi_lower= IntParameter(low=15, high=70, default=45, space='buy', optimize=True, load=True)
 
@@ -55,66 +52,76 @@ class PivotPoint(IStrategy):
 
         return dataframe
 
+
+
+
+
     def populate_entry_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
+
+        logger.info(qtpylib.crossed_above(df['close'],df['Pivot']))
+        if qtpylib.crossed_above(df['close'],df['Pivot']):
+            self.condition_long = qtpylib.crossed_above(df['close'],df['Pivot'])
+        if qtpylib.crossed_above(df['close'],df['Support1']):
+            self.condition_long = qtpylib.crossed_above(df['close'],df['Support1'])
+        if  qtpylib.crossed_above(df['close'],df['Support2']):
+            self.condition_long =  qtpylib.crossed_above(df['close'],df['Support2'])
+        if qtpylib.crossed_above(df['close'],df['Resistance1']):
+            self.condition_long = qtpylib.crossed_above(df['close'],df['Resistance1'])
+        if qtpylib.crossed_above(df['close'],df['Resistance2']):
+            self.condition_long = qtpylib.crossed_above(df['close'],df['Resistance2'])
+
+
+        df.loc[(self.condition_long),'enter_long'] = 1
         
-        df['intersect_Pivot'] = qtpylib.crossed_above(df['close'],df['Pivot'])
-        df['intersect_Support1'] = qtpylib.crossed_above(df['close'],df['Support1'])
-        df['intersect_Support2'] = qtpylib.crossed_above(df['close'],df['Support2'])
-        df['intersect_Resistance1'] = qtpylib.crossed_above(df['close'],df['Resistance1'])
-        df['intersect_Resistance2'] = qtpylib.crossed_above(df['close'],df['Resistance2'])
-
-        enter_long_conditions = [
-            df['intersect_Pivot']== True| 
-            df['intersect_Support1']== True|
-            df['intersect_Support2'] == True|
-             df['intersect_Resistance1']== True|
-            df['intersect_Resistance2']== True
-
-        ]
-
-
-
-        if (enter_long_conditions):
-            df.loc[
-                reduce(lambda x, y: x & y, enter_long_conditions), ["enter_long", "enter_tag"]
-            ] = (1, "long")
-
-        df['intersect_Pivot'] = qtpylib.crossed_below(df['close'],df['Pivot'])
-        df['intersect_Support1'] = qtpylib.crossed_below(df['close'],df['Support1'])
-        df['intersect_Support2'] = qtpylib.crossed_below(df['close'],df['Support2'])
-        df['intersect_Resistance1'] = qtpylib.crossed_below(df['close'],df['Resistance1'])
-        df['intersect_Resistance2'] = qtpylib.crossed_below(df['close'],df['Resistance2'])
-
-        enter_short_conditions = [
-             df['intersect_Pivot']== True| 
-            df['intersect_Support1']== True|
-            df['intersect_Support2'] == True|
-             df['intersect_Resistance1']== True|
-            df['intersect_Resistance2']== True
-        ]
-
-
-        if (enter_short_conditions) :
-            df.loc[
-                reduce(lambda x, y: x & y, enter_short_conditions), ["enter_short", "enter_tag"]
-            ] = (1, "short")
-
+        if qtpylib.crossed_below(df['close'],df['Pivot']):
+            self.condition_short = qtpylib.crossed_below(df['close'],df['Pivot'])
+        if qtpylib.crossed_below(df['close'],df['Support1']):
+            self.condition_short = qtpylib.crossed_below(df['close'],df['Support1'])
+        if  qtpylib.crossed_below(df['close'],df['Support2']):
+            self.condition_short =  qtpylib.crossed_below(df['close'],df['Support2'])
+        if qtpylib.crossed_below(df['close'],df['Resistance1']):
+            self.condition_short = qtpylib.crossed_below(df['close'],df['Resistance1'])
+        if qtpylib.crossed_below(df['close'],df['Resistance2']):
+            self.condition_short = qtpylib.crossed_below(df['close'],df['Resistance2'])
+        df.loc[(self.condition_short),'enter_short'] = 1
+        
         return df
-
-
+    
 
     def populate_exit_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
-        exit_long_conditions = [
-        (qtpylib.crossed_above(df['rsi'], self.Exit_rsi_upper.value))
-        ]
+        if self.condition_long==qtpylib.crossed_above(df['close'],df['Pivot']):
+            self.condition_exit_long =  qtpylib.crossed_above(df['close'],df['Support1'])|qtpylib.crossed_above(df['close'],df['Support2'])|qtpylib.crossed_above(df['close'],df['Resistance1'])|qtpylib.crossed_above(df['close'],df['Resistance2'])
 
-        if exit_long_conditions:
-            df.loc[reduce(lambda x, y: x & y, exit_long_conditions), "exit_long"] = 1
+        if self.condition_long==qtpylib.crossed_above(df['close'],df['Support1']):
+            self.condition_exit_long =  qtpylib.crossed_above(df['close'],df['Pivot'])|qtpylib.crossed_above(df['close'],df['Support2'])|qtpylib.crossed_above(df['close'],df['Resistance1'])|qtpylib.crossed_above(df['close'],df['Resistance2'])
 
-        exit_short_conditions = [
-            (qtpylib.crossed_below(df['rsi'], self.Exit_rsi_lower.value))
-        ]
-        if exit_short_conditions:
-            df.loc[reduce(lambda x, y: x & y, exit_short_conditions), "exit_short"] = 1
+        if self.condition_long==qtpylib.crossed_above(df['close'],df['Support2']):
+            self.condition_exit_long =  qtpylib.crossed_above(df['close'],df['Pivot'])|qtpylib.crossed_above(df['close'],df['Support1'])|qtpylib.crossed_above(df['close'],df['Resistance1'])|qtpylib.crossed_above(df['close'],df['Resistance2'])
+
+        if self.condition_long==qtpylib.crossed_above(df['close'],df['Resistance1']):
+            self.condition_exit_long =  qtpylib.crossed_above(df['close'],df['Pivot'])|qtpylib.crossed_above(df['close'],df['Support1'])|qtpylib.crossed_above(df['close'],df['Support2'])|qtpylib.crossed_above(df['close'],df['Resistance2'])
+
+        if self.condition_long==qtpylib.crossed_above(df['close'],df['Resistance1']):
+            self.condition_exit_long =  qtpylib.crossed_above(df['close'],df['Pivot'])|qtpylib.crossed_above(df['close'],df['Support1'])|qtpylib.crossed_above(df['close'],df['Support2'])|qtpylib.crossed_above(df['close'],df['Resistance1'])
+
+        df.loc[(self.condition_exit_long),'exit_long'] = 1
+
+        if self.condition_short==qtpylib.crossed_below(df['close'],df['Pivot']):
+            self.condition_exit_short =  qtpylib.crossed_below(df['close'],df['Support1'])|qtpylib.crossed_below(df['close'],df['Support2'])|qtpylib.crossed_below(df['close'],df['Resistance1'])|qtpylib.crossed_below(df['close'],df['Resistance2'])
+
+        if self.condition_short==qtpylib.crossed_below(df['close'],df['Support1']):
+            self.condition_exit_short =  qtpylib.crossed_below(df['close'],df['Pivot'])|qtpylib.crossed_below(df['close'],df['Support2'])|qtpylib.crossed_below(df['close'],df['Resistance1'])|qtpylib.crossed_below(df['close'],df['Resistance2'])
+
+        if self.condition_short==qtpylib.crossed_below(df['close'],df['Support2']):
+            self.condition_exit_short =  qtpylib.crossed_below(df['close'],df['Pivot'])|qtpylib.crossed_below(df['close'],df['Support1'])|qtpylib.crossed_below(df['close'],df['Resistance1'])|qtpylib.crossed_below(df['close'],df['Resistance2'])
+
+        if self.condition_short==qtpylib.crossed_below(df['close'],df['Resistance1']):
+            self.condition_exit_short =  qtpylib.crossed_below(df['close'],df['Pivot'])|qtpylib.crossed_below(df['close'],df['Support1'])|qtpylib.crossed_below(df['close'],df['Support2'])|qtpylib.crossed_below(df['close'],df['Resistance2'])
+
+        if self.condition_short==qtpylib.crossed_below(df['close'],df['Resistance1']):
+            self.condition_exit_short =  qtpylib.crossed_below(df['close'],df['Pivot'])|qtpylib.crossed_below(df['close'],df['Support1'])|qtpylib.crossed_below(df['close'],df['Support2'])|qtpylib.crossed_below(df['close'],df['Resistance1'])
+
+
+        df.loc[( self.condition_exit_short ),'exit_short'] = 1
 
         return df
