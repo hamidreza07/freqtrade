@@ -13,11 +13,11 @@ freqtrade trade --strategy SupertrendAI --strategy-path freqtrade/templates --co
 ## backtesting:
 1. download the data:
 ```bash
-freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230401-20230801 --pairs BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --erase --trading-mode futures
+freqtrade download-data --exchange binance   --timerange 20230520-20230810   --erase --trading-mode futures --config config_examples/config_freqai.example.json
 ```
 2. run backtesting:
 ```bash
-freqtrade backtesting -s FreqaiExampleStrategy3 --strategy-path freqtrade/templates  --freqaimodel GridRegressionMD --freqaimodel-path freqtrade/freqai/prediction_models --config config_examples/config_freqai.example.json  -p BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --timerange 20230501-20230601
+freqtrade backtesting -s Ichimoku --strategy-path freqtrade/templates  --config config_examples/config_freqai.example.json   --timerange 20230601-20230701
 ```
 
 ## hyperparameter optimazer:
