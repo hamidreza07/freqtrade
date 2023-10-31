@@ -7,7 +7,7 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 from functools import reduce
 from pandas import DataFrame
 # import freqtrade.vendor.qtpylib.indicators as qtpylib
-from freqtrade.strategy import IStrategy, CategoricalParameter, DecimalParameter, IntParameter, RealParameter
+from freqtrade.strategy import IStrategy, CategoricalParameter, merge_informative_pair, IntParameter, RealParameter
 logger = logging.getLogger(__name__)
 
 class PivotPoint(IStrategy):
@@ -38,33 +38,35 @@ class PivotPoint(IStrategy):
     std_dev_multiplier_sell = CategoricalParameter(
         [0.75, 1, 1.25, 1.5, 1.75], space="sell", default=1.25, optimize=True)
 
+    def informative_pairs(self):
 
+        # get access to all pairs available in whitelist.
+        pairs = self.dp.current_whitelist()
+        # Assign tf to each pair so they can be downloaded and cached for strategy.
+        informative_pairs = [(pair, '1d') for pair in pairs]
+        
+        return informative_pairs
 
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        # Calculate pivot point levels
-        dataframe['Pivot'] = (dataframe['high'] + dataframe['low'] + dataframe['close']) / 3
-        dataframe['Support1'] = (2 * dataframe['Pivot']) - dataframe['high']
-        dataframe['Support2'] = dataframe['Pivot'] - (dataframe['high'] - dataframe['low'])
-        dataframe['Support3'] = dataframe['low'] - 2 * (dataframe['high'] - dataframe['Pivot'])
-        dataframe['Resistance1'] = (2 * dataframe['Pivot']) - dataframe['low']
-        dataframe['Resistance2'] = dataframe['Pivot'] + (dataframe['high'] - dataframe['low'])
-        dataframe['Resistance3'] = dataframe['high'] + 2 * (dataframe['Pivot'] - dataframe['low'])
+
+        inf_tf = '1d'
+        # Get the informative pair
+        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=inf_tf)
+        informative['Pivot'] = (informative['high'] + informative['low'] + informative['close']) / 3
+
+        informative['Support1'] = (2 * informative['Pivot']) - informative['high']
+        informative['Support2'] = informative['Pivot'] - (informative['high'] - informative['low'])
+        informative['Resistance1'] = (2 * informative['Pivot']) - informative['low']
+        informative['Resistance2'] = informative['Pivot'] + (informative['high'] - informative['low'])
+        informative['date'] = pd.to_datetime(informative['date'])
 
 
-        dataframe['condition_entry_long_5'] = qtpylib.crossed_above(dataframe['close'], dataframe['Resistance2'])
-        dataframe['condition_entry_long_4'] = (qtpylib.crossed_above(dataframe['close'], dataframe['Resistance1'])) & (dataframe['close']<dataframe['Resistance2'])
-        dataframe['condition_entry_long_1'] = (qtpylib.crossed_above(dataframe['close'], dataframe['Pivot'])) & (dataframe['close']<dataframe['Resistance1'])
-        dataframe['condition_entry_long_2'] = (qtpylib.crossed_above(dataframe['close'], dataframe['Support1'])) & (dataframe['close']<dataframe['Pivot'])
-        dataframe['condition_entry_long_3'] = (qtpylib.crossed_above(dataframe['close'], dataframe['Support2']) )& (dataframe['close']<dataframe['Support1'])
+        dataframe = merge_informative_pair(dataframe, informative, self.timeframe, inf_tf, ffill=True)
 
 
 
-        dataframe['condition_entry_short_5'] = (qtpylib.crossed_below(dataframe['close'], dataframe['Resistance2'])) & (dataframe['close'] > dataframe['Resistance1'])
-        dataframe['condition_entry_short_4'] = (qtpylib.crossed_below(dataframe['close'], dataframe['Resistance1'])) & (dataframe['close'] > dataframe['Pivot'])
-        dataframe['condition_entry_short_1'] = (qtpylib.crossed_below(dataframe['close'], dataframe['Pivot'])) & (dataframe['close']> dataframe['Support1'])
-        dataframe['condition_entry_short_2'] = (qtpylib.crossed_below(dataframe['close'], dataframe['Support1'])) & (dataframe['close'] > dataframe['Support2'])
-        dataframe['condition_entry_short_3'] = qtpylib.crossed_below(dataframe['close'], dataframe['Support2'])
+
 
 
 
@@ -75,61 +77,78 @@ class PivotPoint(IStrategy):
 
     def populate_entry_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
 
-        df.loc[
-            (
-     
-                df['condition_entry_long_5']|
-                df['condition_entry_long_4']|
-                df['condition_entry_long_1']|
-                df['condition_entry_long_3'] 
-            ),
-            'enter_long'] = 1
+        df['condition_entry_long_1'] = (df['close'].shift(1) < df['Support2_1d'].shift(1)) & (df['close'] >= df['Support2_1d'])
+        df['condition_entry_long_2'] = (df['close'].shift(1) < df['Support1_1d'].shift(1)) & (df['close'] >= df['Support1_1d'])
+        df['condition_entry_long_3'] = (df['close'].shift(1) < df['Pivot_1d'].shift(1)) & (df['close'] >= df['Pivot_1d'])
+        df['condition_entry_long_4'] = (df['close'].shift(1) < df['Resistance1_1d'].shift(1)) & (df['close'] >= df['Resistance1_1d'])
+        df['condition_entry_long_5'] = (df['close'].shift(1) < df['Resistance2_1d'].shift(1)) & (df['close'] >= df['Resistance2_1d'])
 
 
+        df['condition_entry_short_1'] = (df['close'].shift(1) > df['Resistance2_1d'].shift(1)) & (df['close'] <= df['Resistance2_1d'])
+        df['condition_entry_short_2'] = (df['close'].shift(1) > df['Resistance1_1d'].shift(1)) & (df['close'] <= df['Resistance1_1d'])
+        df['condition_entry_short_3'] = (df['close'].shift(1) > df['Pivot_1d'].shift(1)) & (df['close'] <= df['Pivot_1d'])
+        df['condition_entry_short_4'] = (df['close'].shift(1) > df['Support1_1d'].shift(1)) & (df['close'] <= df['Support1_1d'])
+        df['condition_entry_short_5'] = (df['close'].shift(1) > df['Support2_1d'].shift(1)) & (df['close'] <= df['Support2_1d'])
 
-        df.loc[
-            (
-                df['condition_entry_short_5']|
-                df['condition_entry_short_4']|
-                df['condition_entry_short_1']|
-                df['condition_entry_short_2'] 
-                                        ),
-            'enter_short'] = 1
+        enter_long_conditions = [
+
+       ( (df['close'].shift(1) < df['Support2_1d'].shift(1)) & (df['close'] >= df['Support2_1d'])),
+     (   (df['close'].shift(1) < df['Support1_1d'].shift(1)) & (df['close'] >= df['Support1_1d'])),
+      (  (df['close'].shift(1) < df['Pivot_1d'].shift(1)) & (df['close'] >= df['Pivot_1d'])),
+(        (df['close'].shift(1) < df['Resistance1_1d'].shift(1)) & (df['close'] >= df['Resistance1_1d'])),
+(        (df['close'].shift(1) < df['Resistance2_1d'].shift(1)) & (df['close'] >= df['Resistance2_1d']) )
+            ]
+
+        if enter_long_conditions:
+            df.loc[
+                reduce(lambda x, y: x | y , enter_long_conditions), ["enter_long", "enter_tag"]
+            ] = (1, "long")
+        enter_short_conditions = [
+        (df['close'].shift(1) > df['Resistance2_1d'].shift(1)) & (df['close'] <= df['Resistance2_1d']),
+        (df['close'].shift(1) > df['Resistance1_1d'].shift(1)) & (df['close'] <= df['Resistance1_1d']),
+        (df['close'].shift(1) > df['Pivot_1d'].shift(1)) & (df['close'] <= df['Pivot_1d']),
+        (df['close'].shift(1) > df['Support1_1d'].shift(1)) & (df['close'] <= df['Support1_1d']),
+        (df['close'].shift(1) > df['Support2_1d'].shift(1)) & (df['close'] <= df['Support2_1d'])]
+
+        if enter_short_conditions:
+            df.loc[
+                reduce(lambda x, y: x | y, enter_short_conditions), ["enter_short", "enter_tag"]
+            ] = (1, "short")
+
+
         return df
 
     
 
+
+
     def populate_exit_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
-        df['condition_exit_long_5'] = (df['close'] >= df['Resistance2'])
-        df['condition_exit_long_4'] = (df['close'] >= df['Resistance1'])
+        df['condition_exit_long_1'] = (df['condition_entry_long_1']==True) &(df['close'].shift(1) < df['Support2_1d'].shift(1)) & (df['close'] >= df['Support2_1d'])
+        df['condition_exit_long_2'] = (df['condition_entry_long_2']==True) & (df['close'].shift(1) < df['Pivot_1d'].shift(1)) & (df['close'] >= df['Pivot_1d'])
+        df['condition_exit_long_3'] = (df['condition_entry_long_3']==True) & (df['close'].shift(1) < df['Resistance1_1d'].shift(1)) & (df['close'] >= df['Resistance1_1d'])
+        df['condition_exit_long_4'] = (df['condition_entry_long_4']==True ) & (df['close'].shift(1) < df['Resistance2_1d'].shift(1)) & (df['close'] >= df['Resistance2_1d'])
+   
+       
+        df['condition_exit_short_1'] = (df['condition_entry_short_1']) &  (df['close'].shift(1) > df['Resistance1_1d'].shift(1)) & (df['close'] <= df['Resistance1_1d'])
+        df['condition_exit_short_2'] = (df['condition_entry_short_2']) & (df['close'].shift(1) > df['Pivot_1d'].shift(1)) & (df['close'] <= df['Pivot_1d'])
+        df['condition_exit_short_3'] = (df['condition_entry_short_3'] ) & (df['close'].shift(1) > df['Support1_1d'].shift(1)) & (df['close'] <= df['Support1_1d'])
+        df['condition_exit_short_4'] = (df['condition_entry_short_4']) & (df['close'].shift(1) > df['Support2_1d'].shift(1)) & (df['close'] <= df['Support2_1d'])
+        exit_long_conditions = [
+           df['condition_exit_long_1'],
+            df['condition_exit_long_2'] ,
+            df['condition_exit_long_3'],
+            df['condition_exit_long_4']
+            ]
+        if exit_long_conditions:
+            df.loc[reduce(lambda x, y: x | y, exit_long_conditions), "exit_long"] = 1
 
-        df['condition_exit_long_1'] = (df['close'] >= df['Pivot'])
-        df['condition_exit_long_2'] = (df['close'] >= df['Support1'])
-        df.loc[
-            (
-            (df['condition_entry_long_1']==True & (df['condition_exit_long_4']==True )) |
-            (df['condition_entry_long_2']==True & (df['condition_exit_long_1']==True )) |
-            (df['condition_entry_long_3']==True & (df['condition_exit_long_2']==True )) |
-            (df['condition_entry_long_4']==True & (df['condition_exit_long_5']==True ) )
-            ),
+        exit_short_conditions = [
+            df['condition_exit_short_1'],
+            df['condition_exit_short_2'] ,
+            df['condition_exit_short_3'],
+            df['condition_exit_short_4']
+            ]
+        if exit_short_conditions:
+            df.loc[reduce(lambda x, y: x | y, exit_short_conditions), "exit_short"] = 1
 
-            'exit_long'] = 1
-        
-        df['condition_exit_short_5'] = (df['close']<= df['Resistance2'])
-        df['condition_exit_short_4'] = (df['close']<= df['Resistance1'])
-        df['condition_exit_short_1'] = (df['close']<= df['Pivot'])
-        df['condition_exit_short_2'] = (df['close']<= df['Support1'])
-        df['condition_exit_short_3'] = (df['close']<= df['Support2'])
-
-        # Define the exit condition_exits based on your requirements
-        df.loc[
-            (
-            (df['condition_entry_short_1']==True & (df['condition_exit_short_2']==True )) |
-            (df['condition_entry_short_2']==True & (df['condition_exit_short_3']==True )) |
-            (df['condition_entry_short_4']==True & (df['condition_exit_short_1']==True )) |
-            (df['condition_entry_short_5']==True & (df['condition_exit_short_4']==True ) )
-            ),
-
-            'exit_short'] = 1
-        
         return df
