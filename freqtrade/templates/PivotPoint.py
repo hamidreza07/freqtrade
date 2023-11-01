@@ -1,6 +1,7 @@
 import logging
 import talib.abstract as ta
-import talib
+from datetime import datetime, timedelta, timezone
+from freqtrade.persistence import Trade
 import numpy as np  # noqa
 import pandas as pd
 import freqtrade.vendor.qtpylib.indicators as qtpylib
@@ -9,7 +10,7 @@ from pandas import DataFrame
 # import freqtrade.vendor.qtpylib.indicators as qtpylib
 from freqtrade.strategy import IStrategy, CategoricalParameter, merge_informative_pair, IntParameter, RealParameter
 logger = logging.getLogger(__name__)
-
+from typing import Optional
 class PivotPoint(IStrategy):
 
     timeframe = '5m'
@@ -90,65 +91,149 @@ class PivotPoint(IStrategy):
         df['condition_entry_short_4'] = (df['close'].shift(1) > df['Support1_1d'].shift(1)) & (df['close'] <= df['Support1_1d'])
         df['condition_entry_short_5'] = (df['close'].shift(1) > df['Support2_1d'].shift(1)) & (df['close'] <= df['Support2_1d'])
 
-        enter_long_conditions = [
+        enter_long_1 = [df['condition_entry_long_1']]
+        enter_long_2 = [df['condition_entry_long_2']]
+        enter_long_3 = [df['condition_entry_long_3']]
+        enter_long_4 = [df['condition_entry_long_4']]
+        enter_long_5 = [df['condition_entry_long_5']]
 
-       ( (df['close'].shift(1) < df['Support2_1d'].shift(1)) & (df['close'] >= df['Support2_1d'])),
-     (   (df['close'].shift(1) < df['Support1_1d'].shift(1)) & (df['close'] >= df['Support1_1d'])),
-      (  (df['close'].shift(1) < df['Pivot_1d'].shift(1)) & (df['close'] >= df['Pivot_1d'])),
-(        (df['close'].shift(1) < df['Resistance1_1d'].shift(1)) & (df['close'] >= df['Resistance1_1d'])),
-(        (df['close'].shift(1) < df['Resistance2_1d'].shift(1)) & (df['close'] >= df['Resistance2_1d']) )
-            ]
 
-        if enter_long_conditions:
+        if enter_long_1:
             df.loc[
-                reduce(lambda x, y: x | y , enter_long_conditions), ["enter_long", "enter_tag"]
-            ] = (1, "long")
-        enter_short_conditions = [
-        (df['close'].shift(1) > df['Resistance2_1d'].shift(1)) & (df['close'] <= df['Resistance2_1d']),
-        (df['close'].shift(1) > df['Resistance1_1d'].shift(1)) & (df['close'] <= df['Resistance1_1d']),
-        (df['close'].shift(1) > df['Pivot_1d'].shift(1)) & (df['close'] <= df['Pivot_1d']),
-        (df['close'].shift(1) > df['Support1_1d'].shift(1)) & (df['close'] <= df['Support1_1d']),
-        (df['close'].shift(1) > df['Support2_1d'].shift(1)) & (df['close'] <= df['Support2_1d'])]
+                reduce(lambda x, y: x | y , enter_long_1), ["enter_long", "enter_tag"]
+            ] = (1, "long1")
 
-        if enter_short_conditions:
+
+        if enter_long_2:
             df.loc[
-                reduce(lambda x, y: x | y, enter_short_conditions), ["enter_short", "enter_tag"]
-            ] = (1, "short")
+                reduce(lambda x, y: x | y , enter_long_2), ["enter_long", "enter_tag"]
+            ] = (1, "long2")
+        if enter_long_3:
+            df.loc[
+                reduce(lambda x, y: x | y , enter_long_3), ["enter_long", "enter_tag"]
+            ] = (1, "long3")
+
+        if enter_long_4:
+            df.loc[
+                reduce(lambda x, y: x | y , enter_long_4), ["enter_long", "enter_tag"]
+            ] = (1, "long4")
+        if enter_long_5:
+            df.loc[
+                reduce(lambda x, y: x | y , enter_long_5), ["enter_long", "enter_tag"]
+            ] = (1, "long5")
 
 
+
+        enter_short_1 = [df['condition_entry_short_1']]
+        enter_short_2 = [df['condition_entry_short_2']]
+        enter_short_3 = [df['condition_entry_short_3']]
+        enter_short_4 = [df['condition_entry_short_4']]
+        enter_short_5 = [df['condition_entry_short_5']]
+
+
+        if enter_short_1:
+            df.loc[
+                reduce(lambda x, y: x | y , enter_short_1), ["enter_short", "enter_tag"]
+            ] = (1, "short1")
+
+
+        if enter_short_2:
+            df.loc[
+                reduce(lambda x, y: x | y , enter_short_2), ["enter_short", "enter_tag"]
+            ] = (1, "short2")
+        if enter_short_3:
+            df.loc[
+                reduce(lambda x, y: x | y , enter_short_3), ["enter_short", "enter_tag"]
+            ] = (1, "short3")
+
+        if enter_short_4:
+            df.loc[
+                reduce(lambda x, y: x | y , enter_short_4), ["enter_short", "enter_tag"]
+            ] = (1, "short4")
+        if enter_short_5:
+            df.loc[
+                reduce(lambda x, y: x | y , enter_short_5), ["enter_short", "enter_tag"]
+            ] = (1, "short5")
         return df
-
-    
 
 
 
     def populate_exit_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
-        df['condition_exit_long_1'] = (df['condition_entry_long_1']==True) &(df['close'].shift(1) < df['Support2_1d'].shift(1)) & (df['close'] >= df['Support2_1d'])
-        df['condition_exit_long_2'] = (df['condition_entry_long_2']==True) & (df['close'].shift(1) < df['Pivot_1d'].shift(1)) & (df['close'] >= df['Pivot_1d'])
-        df['condition_exit_long_3'] = (df['condition_entry_long_3']==True) & (df['close'].shift(1) < df['Resistance1_1d'].shift(1)) & (df['close'] >= df['Resistance1_1d'])
-        df['condition_exit_long_4'] = (df['condition_entry_long_4']==True ) & (df['close'].shift(1) < df['Resistance2_1d'].shift(1)) & (df['close'] >= df['Resistance2_1d'])
+        df['condition_exit_long_1'] = (df['close'].shift(1) < df['Support2_1d'].shift(1)) & (df['close'] >= df['Support2_1d'])
+        df['condition_exit_long_2'] = (df['close'].shift(1) < df['Pivot_1d'].shift(1)) & (df['close'] >= df['Pivot_1d'])
+        df['condition_exit_long_3'] = (df['close'].shift(1) < df['Resistance1_1d'].shift(1)) & (df['close'] >= df['Resistance1_1d'])
+        df['condition_exit_long_4'] =  (df['close'].shift(1) < df['Resistance2_1d'].shift(1)) & (df['close'] >= df['Resistance2_1d'])
    
        
-        df['condition_exit_short_1'] = (df['condition_entry_short_1']) &  (df['close'].shift(1) > df['Resistance1_1d'].shift(1)) & (df['close'] <= df['Resistance1_1d'])
-        df['condition_exit_short_2'] = (df['condition_entry_short_2']) & (df['close'].shift(1) > df['Pivot_1d'].shift(1)) & (df['close'] <= df['Pivot_1d'])
-        df['condition_exit_short_3'] = (df['condition_entry_short_3'] ) & (df['close'].shift(1) > df['Support1_1d'].shift(1)) & (df['close'] <= df['Support1_1d'])
-        df['condition_exit_short_4'] = (df['condition_entry_short_4']) & (df['close'].shift(1) > df['Support2_1d'].shift(1)) & (df['close'] <= df['Support2_1d'])
-        exit_long_conditions = [
-           df['condition_exit_long_1'],
-            df['condition_exit_long_2'] ,
-            df['condition_exit_long_3'],
-            df['condition_exit_long_4']
-            ]
-        if exit_long_conditions:
-            df.loc[reduce(lambda x, y: x | y, exit_long_conditions), "exit_long"] = 1
+        df['condition_exit_short_1'] =  (df['close'].shift(1) > df['Resistance1_1d'].shift(1)) & (df['close'] <= df['Resistance1_1d'])
+        df['condition_exit_short_2'] =  (df['close'].shift(1) > df['Pivot_1d'].shift(1)) & (df['close'] <= df['Pivot_1d'])
+        df['condition_exit_short_3'] =  (df['close'].shift(1) > df['Support1_1d'].shift(1)) & (df['close'] <= df['Support1_1d'])
+        df['condition_exit_short_4'] =  (df['close'].shift(1) > df['Support2_1d'].shift(1)) & (df['close'] <= df['Support2_1d'])
 
-        exit_short_conditions = [
-            df['condition_exit_short_1'],
-            df['condition_exit_short_2'] ,
-            df['condition_exit_short_3'],
-            df['condition_exit_short_4']
-            ]
-        if exit_short_conditions:
-            df.loc[reduce(lambda x, y: x | y, exit_short_conditions), "exit_short"] = 1
+        for index,row in df.iterrows():
+
+            if row['enter_tag']== 'long1' :
+                exit_long_conditions =[]
+
+                exit_long_conditions.append(df['condition_exit_long_1'] )
+                if exit_long_conditions:
+                    df.loc[reduce(lambda x, y: x | y, exit_long_conditions), "exit_long"] = 1
+            if row['enter_tag']== 'long2' :
+                exit_long_conditions =[]
+
+                exit_long_conditions.append(df['condition_exit_long_2'] )
+                if exit_long_conditions:
+                    df.loc[reduce(lambda x, y: x | y, exit_long_conditions), "exit_long"] = 1
+            if row['enter_tag']== 'long3' :
+                exit_long_conditions =[]
+
+                exit_long_conditions.append(df['condition_exit_long_3'] )
+                if exit_long_conditions:
+                    df.loc[reduce(lambda x, y: x | y, exit_long_conditions), "exit_long"] = 1
+            if row['enter_tag']== 'long4' :
+                exit_long_conditions =[]
+
+                exit_long_conditions.append(df['condition_exit_long_4'] )
+                if exit_long_conditions:
+                    df.loc[reduce(lambda x, y: x | y, exit_long_conditions), "exit_long"] = 1
+            if row['enter_tag']== 'long5' :
+                exit_long_conditions =[]
+
+                exit_long_conditions.append(df['condition_exit_long_5'] )
+                if exit_long_conditions:
+                    df.loc[reduce(lambda x, y: x | y, exit_long_conditions), "exit_long"] = 1
+
+        for index,row in df.iterrows():
+
+            if row['enter_tag']== 'short1' :
+                exit_short_conditions =[]
+
+                exit_short_conditions.append(df['condition_exit_short_1'] )
+                if exit_short_conditions:
+                    df.loc[reduce(lambda x, y: x | y, exit_short_conditions), "exit_short"] = 1
+            if row['enter_tag']== 'short2' :
+                exit_short_conditions =[]
+
+                exit_short_conditions.append(df['condition_exit_short_2'] )
+                if exit_short_conditions:
+                    df.loc[reduce(lambda x, y: x | y, exit_short_conditions), "exit_short"] = 1
+            if row['enter_tag']== 'short3' :
+                exit_short_conditions =[]
+
+                exit_short_conditions.append(df['condition_exit_short_3'] )
+                if exit_short_conditions:
+                    df.loc[reduce(lambda x, y: x | y, exit_short_conditions), "exit_short"] = 1
+            if row['enter_tag']== 'short4' :
+                exit_short_conditions =[]
+
+                exit_short_conditions.append(df['condition_exit_short_4'] )
+                if exit_short_conditions:
+                    df.loc[reduce(lambda x, y: x | y, exit_short_conditions), "exit_short"] = 1
+            if row['enter_tag']== 'short5' :
+                exit_short_conditions =[]
+
+                exit_short_conditions.append(df['condition_exit_short_5'] )
+                if exit_short_conditions:
+                    df.loc[reduce(lambda x, y: x | y, exit_short_conditions), "exit_short"] = 1
 
         return df
