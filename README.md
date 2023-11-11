@@ -1,7 +1,7 @@
 # Trade by models:
 1. Sample Model and Config running:
 ```bash
-freqtrade trade --strategy SupertrendAI --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel CatboostClassifierMultiTarget --freqaimodel-path freqtrade/freqai/prediction_models/ 
+freqtrade trade --strategy PivotPoint --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel CatboostClassifierMultiTarget --freqaimodel-path freqtrade/freqai/prediction_models/ 
 ```
 
 2. SVM:
@@ -13,11 +13,11 @@ freqtrade trade --strategy SupertrendAI --strategy-path freqtrade/templates --co
 ## backtesting:
 1. download the data:
 ```bash
-freqtrade download-data --exchange binance   --timerange 20230520-20230810   --erase --trading-mode futures --config config_examples/config_freqai.example.json
+freqtrade download-data --exchange binance   --timerange 20230520-20230815 --timeframes 1w 5m 1d   --trading-mode futures --config config_examples/config_freqai.example.json
 ```
 2. run backtesting:
 ```bash
-freqtrade backtesting -s Ichimoku --strategy-path freqtrade/templates  --config config_examples/config_freqai.example.json   --timerange 20230601-20230701
+freqtrade backtesting -s PivotPoint --strategy-path freqtrade/templates  --config config_examples/config_freqai.example.json   --timerange 20230601-20230701
 ```
 
 ## hyperparameter optimazer:
@@ -28,19 +28,22 @@ freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230801
 
 2. run optimazer:
 ```bash
-freqtrade hyperopt -s FreqaiExampleStrategy --strategy-path freqtrade/templates  --freqaimodel ARIMAModel --freqaimodel-path freqtrade/freqai/prediction_models --config config_examples/arima_config.json --hyperopt-loss OnlyProfitHyperOptLoss -p BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT -e 40 --timerange 20230801-20230825
+freqtrade hyperopt -s PivotPoint --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --hyperopt-loss OnlyProfitHyperOptLoss -e 40 --timerange 20230601-20230801
 ```
 
 ## plot the backtest:
 
 1. download data:
 ```bash
-freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230501-20230801 --pairs BTC/USDT:USDT ETH/USDT:USDT XRP/USDT:USDT  --erase --trading-mode futures
+freqtrade download-data --exchange binance --timeframes 1w  --timerange 20230601-20230701    --trading-mode futures --config config_examples/config_freqai.example.json
 ```
 2. Run thic command:
 ```bash
-freqtrade plot-dataframe --strategy SupertrendAI --strategy-path freqtrade/templates --export=trades --export-filename user_data/backtest_results/backtest-result.json   --userdir  user_data/  -c  config_examples/config_freqai.example.json --freqaimodel CatboostClassifierMultiTarget --timerange 20230601-20230701 --freqaimodel-path freqtrade/freqai/prediction_models
+freqtrade plot-dataframe --strategy PivotPoint --strategy-path freqtrade/templates   --userdir  user_data/  -c  config_examples/config_freqai.example.json  --timerange 20230601-20230701 --freqaimodel-path freqtrade/freqai/prediction_models
 ```
+
+
+
 
 
 * be carefull of train_period_days and backtest_period_days in running backtest and hyperparameter optimazer at freqai(sum of train_period_days and backtest_period_days must not be greater than time range)
