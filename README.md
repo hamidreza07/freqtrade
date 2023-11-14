@@ -1,7 +1,7 @@
 # Trade by models:
 1. Sample Model and Config running:
 ```bash
-freqtrade trade --strategy PivotPoint --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel CatboostClassifierMultiTarget --freqaimodel-path freqtrade/freqai/prediction_models/ 
+freqtrade trade --strategy EmaEngAI --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --freqaimodel GridRegressionDTMultiTarget --freqaimodel-path freqtrade/freqai/prediction_models/ 
 ```
 
 2. SVM:
@@ -13,11 +13,12 @@ freqtrade trade --strategy PivotPoint --strategy-path freqtrade/templates --conf
 ## backtesting:
 1. download the data:
 ```bash
-freqtrade download-data --exchange binance   --timerange 20230520-20230815 --timeframes 1w 5m 1d   --trading-mode futures --config config_examples/config_freqai.example.json
+freqtrade download-data --exchange binance   --timerange 20230420-20230820 --timeframes  5m    --trading-mode futures --config config_examples/config_freqai.example.json
 ```
 2. run backtesting:
 ```bash
-freqtrade backtesting -s PivotPoint --strategy-path freqtrade/templates  --config config_examples/config_freqai.example.json   --timerange 20230601-20230701
+freqtrade backtesting -s EmaEngAI --strategy-path freqtrade/templates  --config config_examples/config_freqai.example.json   --timerange 20230601-20230701 --freqaimodel GridRegressionDTMultiTarget --freqaimodel-path freqtrade/freqai/prediction_models/ 
+```
 ```
 
 ## hyperparameter optimazer:
@@ -28,7 +29,7 @@ freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230801
 
 2. run optimazer:
 ```bash
-freqtrade hyperopt -s PivotPoint --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --hyperopt-loss OnlyProfitHyperOptLoss -e 40 --timerange 20230601-20230801
+freqtrade hyperopt -s BBvwap --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --hyperopt-loss OnlyProfitHyperOptLoss -e 40 --timerange 20230501-20230601 
 ```
 
 ## plot the backtest:
@@ -39,7 +40,7 @@ freqtrade download-data --exchange binance --timeframes 1w  --timerange 20230601
 ```
 2. Run thic command:
 ```bash
-freqtrade plot-dataframe --strategy PivotPoint --strategy-path freqtrade/templates   --userdir  user_data/  -c  config_examples/config_freqai.example.json  --timerange 20230601-20230701 --freqaimodel-path freqtrade/freqai/prediction_models
+freqtrade plot-dataframe --strategy BBvwap --strategy-path freqtrade/templates   --userdir  user_data/  -c  config_examples/config_freqai.example.json  --timerange 20230601-20230701 --pairs BTC/USDT:USDT 
 ```
 
 

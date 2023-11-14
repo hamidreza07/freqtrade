@@ -42,7 +42,7 @@ class GridRegressionDTMultiTarget(BaseRegressionModel):
         min_samples_splits = [i for i in range(2, 20, 7)]
         min_samples_leafs = [i for i in range(2, 20, 7)]
         max_leaf_nodes = [i for i in range(2, 20, 7)]
-        logger.info(f"total models: {len(max_depths)*len(min_samples_leafs)*len(min_samples_splits,len(max_leaf_nodes))}")
+        logger.info(f"total models: {len(max_depths)*len(min_samples_leafs)*len(min_samples_splits)*len(max_leaf_nodes)}")
         for max_depth in max_depths:
             for min_samples_split in min_samples_splits:
                 for min_samples_leaf in min_samples_leafs:

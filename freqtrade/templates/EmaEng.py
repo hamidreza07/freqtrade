@@ -11,24 +11,24 @@ class EmaEng(IStrategy):
 
     timeframe = '5m'
 
+
     # ROI table:
     minimal_roi = {
-        "0": 0.066,
-        "19": 0.045,
-        "33": 0.029,
-        "43": 0
+       "0": 0.03,
+      "58": 0.02,
+      "175": 0.01
+
 
 
     }
+    # # Stoploss:
+    stoploss = -0.05
+ 
 
-    # Stoploss:
-    stoploss = -0.321
+    buy_range_EMA = IntParameter(2, 50, default=17, optimize=True)
+    sell_range_EMA = IntParameter(2, 50, default=47, optimize=True)
 
-
-    buy_range_EMA = IntParameter(2, 120, default=92, optimize=True)
-    sell_range_EMA = IntParameter(2, 120, default=103, optimize=True)
-
-    buy_EMA_parameter = DecimalParameter(0.00, 1, default=0.039, optimize=True)
+    buy_EMA_parameter = DecimalParameter(0.00, 1, default= 0.043, optimize=True)
 
     trade_trigger = CategoricalParameter(["can_short", "can_long","can_both"],default="can_long", space='buy', optimize=True)
     if trade_trigger.value=='can_long':

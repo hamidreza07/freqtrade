@@ -14,59 +14,65 @@ class BBvwap(IStrategy):
 
     timeframe = '5m'
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.1,
-        "69": 0.15,
-        "119":0.05,
-        "179":0,
-        "239":-1
+    # # ROI table:
+    # minimal_roi = {
+    #     "0": 0.1,
+    #     "69": 0.15,
+    #     "119":0.05,
+    #     "179":0,
+    #     "239":-1
 
 
 
-    }
+    # }
 
     # Stoploss:
     stoploss = -0.05
 
 
-
-    entry_rsi_upper = IntParameter(low=15, high=70, default=55, space='buy', optimize=True, load=True)
-    entry_rsi_lower= IntParameter(low=15, high=70, default=45, space='buy', optimize=True, load=True)
-
+    buy_range_RSI = IntParameter(2, 80, default=17, optimize=True)
+    sell_range_RSI = IntParameter(2, 80, default=47, optimize=True)
 
 
-    Exit_rsi_upper = IntParameter(low=30, high=100, default=90, space='sell', optimize=True, load=True)
-    Exit_rsi_lower = IntParameter(low=30, high=100, default=10, space='sell', optimize=True, load=True)
+    buy_range_SMA = IntParameter(2, 80, default=17, optimize=True)
+    sell_range_SMA = IntParameter(2, 80, default=47, optimize=True)
 
 
+    entry_rsi_upper = IntParameter(low=15, high=70, default=55, space='buy', optimize=True)
+    entry_rsi_lower= IntParameter(low=15, high=70, default=45, space='buy', optimize=True)
 
+    entry_cum = IntParameter(low=5, high=50, default=15, space='buy', optimize=True)
+
+
+    Exit_rsi_upper = IntParameter(low=15, high=100, default=90, space='sell', optimize=True)
+    Exit_rsi_lower = IntParameter(low=15, high=100, default=10, space='sell', optimize=True)
+
+
+    length = IntParameter(low=5, high=70, default=20, space='buy', optimize=True)
+    mult = DecimalParameter(0.00, 10, default= 2.0, space='buy',optimize=True) 
 
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        # RSI
-        dataframe['rsi'] = ta.RSI(dataframe,timeperiod=14)
+        for val in list(set(list(self.buy_range_RSI.range) + list(self.sell_range_RSI.range))):
+              dataframe[f'rsi{val}'] = ta.RSI(dataframe, timeperiod=val)
 
 
 
-        length = 20
-        mult = 2.0   
-        basis = ta.SMA(dataframe, timeperiod=20)
 
-        # Calculate standard deviation
-        dev = mult * dataframe['close'].rolling(window=length).std()
+        for val in list(set(list(self.buy_range_SMA.range) + list(self.sell_range_SMA.range))):
+            basis = ta.SMA(dataframe, timeperiod=val)
 
-        # Calculate upper and lower Bollinger Bands
-        upper = basis + dev
-        lower = basis - dev
+            dev = self.mult.value * dataframe['close'].rolling(window=self.length.value).std()
 
-        # Calculate Bollinger Band Ratio (bbr)
-        bbr = (dataframe['close'] - lower) / (upper - lower)
+            upper = basis + dev
+            lower = basis - dev
 
-        # Add the Bollinger Band Ratio to your dataframeFrame
-        dataframe['bbr'] = bbr
-        # Calculate the VWAP
+            bbr = (dataframe['close'] - lower) / (upper - lower)
+
+            dataframe[f'bbr{val}'] = bbr
      
+
+
         # dataframe['VWAP'] = qtpylib.rolling_vwap(dataframe)
                 # Calculate the VWAP
         dataframe['TypicalPrice'] = (dataframe['high'] + dataframe['low'] + dataframe['close']) / 3
@@ -104,9 +110,9 @@ class BBvwap(IStrategy):
             # Update the cumulative sum column in the DataFrame
             df.at[index, 'cumulative_sum_column_high'] = cumulative_sum_high
         enter_long_conditions = [
-            df["rsi"] < self.entry_rsi_lower.value,
-            df['bbr'] < 0,
-            df['cumulative_sum_column_high']>=15
+            df[f'rsi{self.buy_range_RSI.value}'] < self.entry_rsi_lower.value,
+            df[f'bbr{self.buy_range_SMA.value}'] < 0,
+            df['cumulative_sum_column_high']>=self.entry_cum.value
         ]
 
 
@@ -140,9 +146,9 @@ class BBvwap(IStrategy):
             # Update the cumulative sum column in the DataFrame
             df.at[index, 'cumulative_sum_high_low'] = cumulative_sum_low
         enter_short_conditions = [
-            df["rsi"] > self.entry_rsi_upper.value,
-            df['bbr'] > 1,
-            df['cumulative_sum_high_low']>=15
+            df[f'rsi{self.buy_range_RSI.value}'] > self.entry_rsi_upper.value,
+            df[f'bbr{self.buy_range_SMA.value}'] > 1,
+            df['cumulative_sum_high_low']>=self.entry_cum.value
         ]
 
 
@@ -157,14 +163,14 @@ class BBvwap(IStrategy):
 
     def populate_exit_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
         exit_long_conditions = [
-        (qtpylib.crossed_above(df['rsi'], self.Exit_rsi_upper.value))
+        (qtpylib.crossed_above(df[f'rsi{self.sell_range_RSI.value}'], self.Exit_rsi_upper.value))
         ]
 
         if exit_long_conditions:
             df.loc[reduce(lambda x, y: x & y, exit_long_conditions), "exit_long"] = 1
 
         exit_short_conditions = [
-            (qtpylib.crossed_below(df['rsi'], self.Exit_rsi_lower.value))
+            (qtpylib.crossed_below(df[f'rsi{self.sell_range_RSI.value}'], self.Exit_rsi_lower.value))
         ]
         if exit_short_conditions:
             df.loc[reduce(lambda x, y: x & y, exit_short_conditions), "exit_short"] = 1
