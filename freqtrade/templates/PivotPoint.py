@@ -14,24 +14,6 @@ from typing import Optional
 import warnings
 warnings.filterwarnings('ignore')
 class PivotPoint(IStrategy):
-    buy_params = {
-    'Support1_parameter' : .382,
-    'Support2_parameter' : .618,
-    'Resistance1_parameter' : .382,
-    'Resistance2_parameter' :.618,
-    'Support1_Woodie_parameter': 2,
-    'Support3_Woodie_parameter' :2,
-    'Resistance1_Woodie_parameter':2,
-    'Resistance3_Woodie_parameter':2,
-    'trade_trigger' :"can_both",
-    'calculation_trigger' :"Fibonacci"
-    }
-   
-
-
-    sell_params = {"time_trigger":"1d"}
-
-     
 
     timeframe = '5m'
 
@@ -75,16 +57,23 @@ class PivotPoint(IStrategy):
     Support2_parameter = DecimalParameter(0.00, 1, default=.618, space="buy", optimize=True, load=True)
     Resistance1_parameter = DecimalParameter(0.00, 1, default=.382, space="buy", optimize=True, load=True)
     Resistance2_parameter = DecimalParameter(0.00, 1, default=.618, space="buy", optimize=True, load=True)
+
     Support1_Woodie_parameter = IntParameter(low=1, high=20, default=2, space='buy', optimize=True, load=True)
     Support3_Woodie_parameter = IntParameter(low=1, high=20, default=2, space='buy', optimize=True, load=True)
+
+
     Resistance1_Woodie_parameter = IntParameter(low=1, high=20, default=2, space='buy', optimize=True, load=True)
     Resistance3_Woodie_parameter = IntParameter(low=1, high=20, default=2, space='buy', optimize=True, load=True)
+
+
+
+
+
+    time_trigger = CategoricalParameter(["1w", "1d"],default="1d", space='buy', optimize=True)
     trade_trigger = CategoricalParameter(["can_short", "can_long","can_both"],default="can_both", space='buy', optimize=True)
+
+
     calculation_trigger = CategoricalParameter(["Woodie", "Fibonacci"],default="Fibonacci", space='buy', optimize=True)
-
-
-    time_trigger = CategoricalParameter(["1w", "1d"],default="1d", space='sell', optimize=True)
-
 
 
     def informative_pairs(self):
