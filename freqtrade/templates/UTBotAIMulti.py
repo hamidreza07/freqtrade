@@ -297,30 +297,3 @@ class UTBotAIMulti(IStrategy):
     def get_ticker_indicator(self):
         return int(self.config["timeframe"][:-1])
 
-    def confirm_trade_entry(
-        self,
-        pair: str,
-        order_type: str,
-        amount: float,
-        rate: float,
-        time_in_force: str,
-        current_time,
-        entry_tag,
-        side: str,
-        **kwargs,
-    ) -> bool:
-        """
-        Completely different trade entry confirmation logic.
-        """
-
-        df, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
-        last_candle = df.iloc[-1].squeeze()
-        # logger.info(f'dataframeeee:{df}')
-        if side == "long":
-            if rate > (last_candle["close"] * (1 + 0.01)):
-                return False
-        else:
-            if rate < (last_candle["close"] * (1 - 0.01)):
-                return False
-
-        return True

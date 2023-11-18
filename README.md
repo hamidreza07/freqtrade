@@ -19,7 +19,6 @@ freqtrade download-data --exchange binance   --timerange 20230420-20230820 --tim
 ```bash
 freqtrade backtesting -s EmaEngAI --strategy-path freqtrade/templates  --config config_examples/config_freqai.example.json   --timerange 20230601-20230701 --freqaimodel GridRegressionDTMultiTarget --freqaimodel-path freqtrade/freqai/prediction_models/ 
 ```
-```
 
 ## hyperparameter optimazer:
 1. download data:
@@ -29,7 +28,7 @@ freqtrade download-data --exchange binance --timeframes 3m  --timerange 20230801
 
 2. run optimazer:
 ```bash
-freqtrade hyperopt -s BBvwap --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --hyperopt-loss OnlyProfitHyperOptLoss -e 40 --timerange 20230501-20230601 
+freqtrade hyperopt -s EmaEngAI --strategy-path freqtrade/templates --config config_examples/config_freqai.example.json --hyperopt-loss OnlyProfitHyperOptLoss -e 40 --timerange 20230501-20230601 --freqaimodel GridRegressionDTMultiTarget --freqaimodel-path freqtrade/freqai/prediction_models/ 
 ```
 
 ## plot the backtest:

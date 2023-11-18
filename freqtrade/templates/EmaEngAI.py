@@ -33,11 +33,9 @@ class EmaEngAI(IStrategy):
 
     buy_EMA_parameter = DecimalParameter(0.00, 1, default= 0.3, optimize=True)
 
-    trade_trigger = CategoricalParameter(["can_short", "can_long","can_both"],default="can_both", space='buy', optimize=True)
-    if trade_trigger.value=='can_long':
-        can_short = False
-    else:
-        can_short = True
+
+
+
     def feature_engineering_expand_all(self, dataframe: DataFrame, period: int,
                                        metadata: Dict, **kwargs) -> DataFrame:
 
@@ -73,22 +71,38 @@ class EmaEngAI(IStrategy):
 
 
         dataframe["new_ema"] = (
-            (dataframe[f'&-ema{self.buy_range_EMA.value}'] - (dataframe[f'&-ema{self.buy_range_EMA.value}'] * self.buy_EMA_parameter.value/ 100))
+            dataframe[f'&-ema{self.buy_range_EMA.value}'] - (dataframe[f'&-ema{self.buy_range_EMA.value}'] * self.buy_EMA_parameter.value / 100)
+            
+            
+            
             )
-        
+            
 
 
         return dataframe
 
     def populate_entry_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
 
+        df.loc[
+            (df["do_predict"] == 1)&
+            (df["close"].shift(1) < df["open"].shift(1))& 
+            (df["open"] <= df["close"].shift(1))&  # Open <= previous close
+            (df["close"] > df["open"].shift(1))&
+            (df["close"] <= df["new_ema"] ),  # Close <= EMA - (EMA * 0.3)/100
 
-        if self.trade_trigger.value=="can_both":
-             df = self.trading_both(df)
-        elif self.trade_trigger.value == "can_long":
-             df = self.trading_long(df)
-        elif self.trade_trigger.value == "can_short":
-             df = self.trading_short(df)
+                  # Close > previous open,
+            'enter_long'] = 1
+        df.loc[
+                        (df["do_predict"] == 1)&
+
+            (df["close"].shift(1) > df["open"].shift(1))& 
+            (df["open"] >= df["close"].shift(1))&  # Open >= previous close
+            (df["close"] < df["open"].shift(1))&
+            (df["close"] >= df["new_ema"]),  # Close <= EMA - (EMA * 0.3)/100
+
+                  # Close > previous open,
+            'enter_short'] = 1
+   
 
 
    
@@ -122,38 +136,8 @@ class EmaEngAI(IStrategy):
 
 
 
-    def trading_long(self,df:DataFrame):
-    
 
-        df.loc[
-            (df["do_predict"] == 1)&
-            (df["close"].shift(1) < df["open"].shift(1))& 
-            (df["open"] <= df["close"].shift(1))&  # Open <= previous close
-            (df["close"] > df["open"].shift(1))&
-            (df["close"] <= df["new_ema"] ),  # Close <= EMA - (EMA * 0.3)/100
 
-                  # Close > previous open,
-            'enter_long'] = 1
-        return df
-         
-    def trading_short(self,df:DataFrame):
-        df.loc[
-                        (df["do_predict"] == 1)&
-
-            (df["close"].shift(1) > df["open"].shift(1))& 
-            (df["open"] >= df["close"].shift(1))&  # Open >= previous close
-            (df["close"] < df["open"].shift(1))&
-            (df["close"] >= df["new_ema"]),  # Close <= EMA - (EMA * 0.3)/100
-
-                  # Close > previous open,
-            'enter_short'] = 1
-   
-        return df
-         
-    def trading_both(self,df:DataFrame):
-         df = self.trading_long(df)
-         df = self.trading_short(df)
-         return df
     def get_ticker_indicator(self):
         return int(self.config["timeframe"][:-1])
 
