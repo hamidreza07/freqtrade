@@ -1,7 +1,8 @@
-from typing import Any, Dict
-
+from typing import Any, Dict,Tuple
+import numpy as np
+import numpy.typing as npt
 import torch
-
+import pandas as pd
 from freqtrade.freqai.base_models.BasePyTorchRegressor import BasePyTorchRegressor
 from freqtrade.freqai.data_kitchen import FreqaiDataKitchen
 from freqtrade.freqai.torch.PyTorchDataConvertor import (DefaultPyTorchDataConvertor,
@@ -63,11 +64,12 @@ class PyTorchMLPRegressor(BasePyTorchRegressor):
             labels, weights
         :param dk: The datakitchen object for the current coin/model
         """
+        n_labels = data_dictionary["train_labels"].shape[-1]
 
         n_features = data_dictionary["train_features"].shape[-1]
         model = PyTorchMLPModel(
             input_dim=n_features,
-            output_dim=1,
+            output_dim=n_labels,
             **self.model_kwargs
         )
         model.to(self.device)
@@ -87,3 +89,57 @@ class PyTorchMLPRegressor(BasePyTorchRegressor):
             )
         trainer.fit(data_dictionary, self.splits)
         return trainer
+    def predict(
+        self, unfiltered_df: pd.DataFrame, dk: FreqaiDataKitchen, **kwargs
+    ) -> Tuple[pd.DataFrame, npt.NDArray[np.int_]]:
+        """
+        Filter the prediction features data and predict with it.
+        :param unfiltered_df: Full dataframe for the current backtest period.
+        :return:
+        :pred_df: dataframe containing the predictions
+        :do_predict: np.array of 1s and 0s to indicate places where freqai needed to remove
+        data (NaNs) or felt uncertain about data (PCA and DI index)
+        """
+
+        dk.find_features(unfiltered_df)
+        dk.data_dictionary["prediction_features"], _ = dk.filter_features(
+            unfiltered_df, dk.training_features_list, training_filter=False
+        )
+
+        dk.data_dictionary["prediction_features"], outliers, _ = dk.feature_pipeline.transform(
+            dk.data_dictionary["prediction_features"], outlier_check=True)
+
+        x = self.data_convertor.convert_x(
+            dk.data_dictionary["prediction_features"],
+            device=self.device
+        )
+        # if user is asking for multiple predictions, slide the window
+        # along the tensor
+        x = x.unsqueeze(0)
+        # create empty torch tensor
+        self.model.model.eval()
+        yb = torch.empty(0).to(self.device)
+        if x.shape[1] > 1:
+            ws = self.window_size
+            for i in range(0, x.shape[1] - ws):
+                xb = x[:, i:i + ws, :].to(self.device)
+                y = self.model.model(xb)
+                yb = torch.cat((yb, y), dim=0)
+        else:
+            yb = self.model.model(x)
+
+        yb = yb.cpu().squeeze()
+        pred_df = pd.DataFrame(yb.detach().numpy(), columns=dk.label_list)
+        pred_df, _, _ = dk.label_pipeline.inverse_transform(pred_df)
+
+        if self.freqai_info.get("DI_threshold", 0) > 0:
+            dk.DI_values = dk.feature_pipeline["di"].di_values
+        else:
+            dk.DI_values = np.zeros(outliers.shape[0])
+        dk.do_predict = outliers
+
+        if x.shape[1] > 1:
+            zeros_df = pd.DataFrame(np.zeros((x.shape[1] - len(pred_df), len(pred_df.columns))),
+                                    columns=pred_df.columns)
+            pred_df = pd.concat([zeros_df, pred_df], axis=0, ignore_index=True)
+        return (pred_df, dk.do_predict)

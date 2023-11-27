@@ -15,33 +15,28 @@ class EmaEngAI(IStrategy):
     timeframe = '5m'
 
 
-    # ROI table:
-    minimal_roi = {
-       "0": 0.03,
-      "58": 0.02,
-      "175": 0.01
+    # # # ROI table:
+    # minimal_roi = {
+    #    "0": 0.01
 
 
-
-    }
+    # }
     # # Stoploss:
-    stoploss = -0.05
+    stoploss = -0.03
  
-
-    buy_range_EMA = IntParameter(2, 50, default=17, optimize=True)
-    sell_range_EMA = IntParameter(2, 50, default=47, optimize=True)
+    can_short = True
+    buy_range_EMA = IntParameter(2, 70, default=50, optimize=True)
+    sell_range_EMA = IntParameter(2, 70, default=50, optimize=True)
 
     buy_EMA_parameter = DecimalParameter(0.00, 1, default= 0.3, optimize=True)
 
-
-
+    EMA_trigger = CategoricalParameter([True,False],default=True, space='buy', optimize=True)
 
     def feature_engineering_expand_all(self, dataframe: DataFrame, period: int,
                                        metadata: Dict, **kwargs) -> DataFrame:
 
 
         dataframe["%-high"] = dataframe["high"]
-        dataframe["%-close"] = dataframe['close']
         dataframe["%-low"] = dataframe['low']
         dataframe["%-open"] = dataframe['open']
 
@@ -58,7 +53,9 @@ class EmaEngAI(IStrategy):
         return dataframe
     def set_freqai_targets(self, dataframe: DataFrame, metadata: Dict, **kwargs) -> DataFrame:
         for val in list(set(list(self.buy_range_EMA.range) + list(self.sell_range_EMA.range))):
-              dataframe[f'&-ema{val}'] = ta.EMA(dataframe, timeperiod=val)
+              dataframe[f'&-ema{val}_1'] = (ta.EMA(dataframe, timeperiod=val)).shift(-30)
+              dataframe[f'&-ema{val}_2'] = (ta.EMA(dataframe, timeperiod=val)).shift(-40)
+              dataframe[f'&-ema{val}_3'] = (ta.EMA(dataframe, timeperiod=val)).shift(-50)
 
 
         return dataframe
@@ -68,42 +65,45 @@ class EmaEngAI(IStrategy):
     
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe = self.freqai.start(dataframe, metadata, self)
-
-
-        dataframe["new_ema"] = (
-            dataframe[f'&-ema{self.buy_range_EMA.value}'] - (dataframe[f'&-ema{self.buy_range_EMA.value}'] * self.buy_EMA_parameter.value / 100)
+        dataframe['ema_now'] =ta.EMA(dataframe, timeperiod=20)
+        if self.EMA_trigger.value:
+            dataframe["new_ema"] = (dataframe[f'ema_now'] - (dataframe[f'ema_now'] * self.buy_EMA_parameter.value / 100) )
             
-            
-            
-            )
-            
+        else:
 
-
+            dataframe["new_ema"] = (dataframe[f'&-ema{self.buy_range_EMA.value}_2'] - (dataframe[f'&-ema{self.buy_range_EMA.value}_2'] * self.buy_EMA_parameter.value / 100) )
+            
         return dataframe
 
     def populate_entry_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
 
         df.loc[
-            (df["do_predict"] == 1)&
+            ((df["do_predict"] == 1)&
             (df["close"].shift(1) < df["open"].shift(1))& 
             (df["open"] <= df["close"].shift(1))&  # Open <= previous close
             (df["close"] > df["open"].shift(1))&
-            (df["close"] <= df["new_ema"] ),  # Close <= EMA - (EMA * 0.3)/100
+            (df["close"] <= df["new_ema"] )&
+            (df[f'&-ema{self.buy_range_EMA.value}_1']>df['ema_now'])&
+            (df[f'&-ema{self.buy_range_EMA.value}_2']>df['ema_now'])&
+            (df[f'&-ema{self.buy_range_EMA.value}_3']>df['ema_now'])),
+            
 
-                  # Close > previous open,
             'enter_long'] = 1
         df.loc[
-                        (df["do_predict"] == 1)&
+            ((df["do_predict"] == 1)&
 
             (df["close"].shift(1) > df["open"].shift(1))& 
-            (df["open"] >= df["close"].shift(1))&  # Open >= previous close
+            (df["open"] >= df["close"].shift(1))&  
             (df["close"] < df["open"].shift(1))&
-            (df["close"] >= df["new_ema"]),  # Close <= EMA - (EMA * 0.3)/100
+            (df["close"] >= df["new_ema"])& 
+            (df[f'&-ema{self.buy_range_EMA.value}_1']<df['ema_now'] )&
+            (df[f'&-ema{self.buy_range_EMA.value}_2']<df['ema_now'])&
+            (df[f'&-ema{self.buy_range_EMA.value}_3']<df['ema_now'])),
 
-                  # Close > previous open,
+
+                 
             'enter_short'] = 1
    
-
 
    
 
@@ -113,23 +113,29 @@ class EmaEngAI(IStrategy):
 
 
     def populate_exit_trend(self, df: DataFrame, metadata: dict) -> DataFrame:
-        exit_long_conditions = [
-                        (df["do_predict"] == 1),
 
-        df["close"] > df[f'&-ema{self.sell_range_EMA.value}']
-        ]
+        df.loc[
+            ((df["do_predict"] == 1)&
 
-        if exit_long_conditions:
-            df.loc[reduce(lambda x, y: x & y, exit_long_conditions), "exit_long"] = 1
+                (df["close"] > df[f'&-ema{self.sell_range_EMA.value}_1'])|
+                (df["close"] > df[f'&-ema{self.sell_range_EMA.value}_2'])|
+                (df["close"] > df[f'&-ema{self.sell_range_EMA.value}_3'])),
+            
 
-        exit_short_conditions = [
-                        (df["do_predict"] == 1),
+                  # Close > previous open,
+            'exit_long'] = 1
 
-        df["close"] < df[f'&-ema{self.sell_range_EMA.value}']
 
-        ]
-        if exit_short_conditions:
-            df.loc[reduce(lambda x, y: x & y, exit_short_conditions), "exit_short"] = 1
+        df.loc[
+            ((df["do_predict"] == 1)&
+
+                (df["close"] < df[f'&-ema{self.sell_range_EMA.value}_1'])|
+                (df["close"] < df[f'&-ema{self.sell_range_EMA.value}_2'])|
+                (df["close"] < df[f'&-ema{self.sell_range_EMA.value}_3'])),
+            
+
+                  # Close > previous open,
+            'exit_short'] = 1
 
         return df
     
@@ -141,27 +147,3 @@ class EmaEngAI(IStrategy):
     def get_ticker_indicator(self):
         return int(self.config["timeframe"][:-1])
 
-    def confirm_trade_entry(
-        self,
-        pair: str,
-        order_type: str,
-        amount: float,
-        rate: float,
-        time_in_force: str,
-        current_time,
-        entry_tag,
-        side: str,
-        **kwargs,
-    ) -> bool:
-
-        df, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
-        last_candle = df.iloc[-1].squeeze()
-
-        if side == "long":
-            if rate > (last_candle["close"] * (1 + 0.0025)):
-                return False
-        else:
-            if rate < (last_candle["close"] * (1 - 0.0025)):
-                return False
-
-        return True         

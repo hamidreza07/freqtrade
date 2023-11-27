@@ -35,9 +35,10 @@ class GridRegressionDT(BaseRegressionModel):
             X_test, y_test = data_dictionary["test_features"], data_dictionary["test_labels"].iloc[:, -1]
 
         decision_tree_param_grid = {
-            'max_depth': [None] + [i for i in range(10, 100, 5)],  # Adjust the range as needed
-            'min_samples_split': [i for i in range(2, 20, 2)],
-            'min_samples_leaf': [i for i in range(2, 20, 2)]
+            'max_depth': [None] + [i for i in range(10, 100, 30)],  # Adjust the range as needed
+            'min_samples_split': [i for i in range(2, 20, 7)],
+            'min_samples_leaf': [i for i in range(2, 20, 7)],
+            "max_leaf_nodes" : [i for i in range(2, 20, 7)]
         }
 
         # Train DecisionTreeRegressor

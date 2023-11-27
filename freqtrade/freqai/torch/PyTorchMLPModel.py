@@ -8,34 +8,37 @@ logger = logging.getLogger(__name__)
 
 
 # class PyTorchMLPModel(nn.Module):
-#     """
-#     A multi-layer perceptron (MLP) model implemented using PyTorch.
+# #     """
+# #     A multi-layer perceptron (MLP) model implemented using PyTorch.
 
-#     This class mainly serves as a simple example for the integration of PyTorch model's
-#     to freqai. It is not optimized at all and should not be used for production purposes.
+# #     This class mainly serves as a simple example for the integration of PyTorch model's
+# #     to freqai. It is not optimized at all and should not be used for production purposes.
 
-#     :param input_dim: The number of input features. This parameter specifies the number
-#         of features in the input data that the MLP will use to make predictions.
-#     :param output_dim: The number of output classes. This parameter specifies the number
-#         of classes that the MLP will predict.
-#     :param hidden_dim: The number of hidden units in each layer. This parameter controls
-#         the complexity of the MLP and determines how many nonlinear relationships the MLP
-#         can represent. Increasing the number of hidden units can increase the capacity of
-#         the MLP to model complex patterns, but it also increases the risk of overfitting
-#         the training data. Default: 256
-#     :param dropout_percent: The dropout rate for regularization. This parameter specifies
-#         the probability of dropping out a neuron during training to prevent overfitting.
-#         The dropout rate should be tuned carefully to balance between underfitting and
-#         overfitting. Default: 0.2
-#     :param n_layer: The number of layers in the MLP. This parameter specifies the number
-#         of layers in the MLP architecture. Adding more layers to the MLP can increase its
-#         capacity to model complex patterns, but it also increases the risk of overfitting
-#         the training data. Default: 1
+# #     :param input_dim: The number of input features. This parameter specifies the number
+# #         of features in the input data that the MLP will use to make predictions.
+# #     :param output_dim: The number of output classes. This parameter specifies the number
+# #         of classes that the MLP will predict.
+# #     :param hidden_dim: The number of hidden units in each layer. This parameter controls
+# #         the complexity of the MLP and determines how many nonlinear relationships the MLP
+# #         can represent. Increasing the number of hidden units can increase the capacity of
+# #         the MLP to model complex patterns, but it also increases the risk of overfitting
+# #         the training data. Default: 256
+# #     :param dropout_percent: The dropout rate for regularization. This parameter specifies
+# #         the probability of dropping out a neuron during training to prevent overfitting.
+# #         The dropout rate should be tuned carefully to balance between underfitting and
+# #         overfitting. Default: 0.2
+# #     :param n_layer: The number of layers in the MLP. This parameter specifies the number
+# #         of layers in the MLP architecture. Adding more layers to the MLP can increase its
+# #         capacity to model complex patterns, but it also increases the risk of overfitting
+# #         the training data. Default: 1
 
-#     :returns: The output of the MLP, with shape (batch_size, output_dim)
-#     """
+# #     :returns: The output of the MLP, with shape (batch_size, output_dim)
+# #     """
 
-#     def __init__(self, input_dim: int, output_dim: int, **kwargs):
+#     def __init__(self, input_dim: int = 7, output_dim: int = 7, hidden_dim=1024,
+#                  dropout_percent=0.1, time_window=10, **kwargs):
+
+#         self.time_window = time_window
 #         super().__init__()
 #         hidden_dim: int = kwargs.get("hidden_dim", 256)
 #         dropout_percent: int = kwargs.get("dropout_percent", 0.2)
@@ -53,15 +56,50 @@ logger = logging.getLogger(__name__)
 #         x = self.relu(self.bn_input(self.input_layer(x)))  # Apply BatchNorm after input layer
 #         x = self.dropout(x)
 #         x = self.blocks(x)
-#         x = self.bn_output(x)  # Apply BatchNorm before output layer
+#         x = self.bn_output(x)
+#         x = x.reshape(-1, 1, self.time_window * x.shape[-1])
+#     # Apply BatchNorm before output layer
 #         x = self.output_layer(x)
 #         return x
+
+
+# class PyTorchMLPModel(nn.Module):
+#     def __init__(self, input_dim: int = 7, output_dim: int = 7, hidden_dim=1024,
+#                  dropout_percent=0.1, time_window=10):
+#         super().__init__()
+#         self.time_window = time_window
+#         self.input_net = nn.Sequential(
+#             nn.Dropout(dropout_percent), nn.Linear(input_dim, hidden_dim)
+#         )
+
+#         # No transformer components
+
+#         # The pseudo decoding FC
+#         self.output_net = nn.Sequential(
+#             nn.Linear(hidden_dim * time_window, int(hidden_dim)),
+#             nn.ReLU(),
+#             nn.Dropout(dropout_percent),
+#             nn.Linear(int(hidden_dim), int(hidden_dim / 2)),
+#             nn.ReLU(),
+#             nn.Dropout(dropout_percent),
+#             nn.Linear(int(hidden_dim / 2), int(hidden_dim / 4)),
+#             nn.ReLU(),
+#             nn.Dropout(dropout_percent),
+#             nn.Linear(int(hidden_dim / 4), output_dim)
+#         )
+
+#     def forward(self, x):
+#         x = self.input_net(x)
+#         x = x.reshape(-1, 1, self.time_window * x.shape[-1])
+#         x = self.output_net(x)
+#         return x
     
-
-
 class PyTorchMLPModel(nn.Module):
-    def __init__(self, input_dim: int, output_dim: int, **kwargs):
-        super().__init__()
+
+    def __init__(self, input_dim: int = 7, output_dim: int = 7, hidden_dim=1024,
+                 dropout_percent=0.1, time_window=10, **kwargs):
+
+        self.time_window = time_window
         hidden_dim = kwargs.get("hidden_dim", 256)
         dropout_percent = kwargs.get("dropout_percent", 0.2)
         n_layer = kwargs.get("n_layer", 1)
@@ -71,7 +109,7 @@ class PyTorchMLPModel(nn.Module):
 
         self.input_layer = nn.Linear(input_dim, hidden_dim)
         self.bn_input = nn.BatchNorm1d(hidden_dim)
-        self.blocks = nn.Sequential(*[Block(hidden_dim, dropout_percent) for _ in range(n_layer)])
+        self.blocks = nn.Sequential(*[Block(hidden_dim, dropout_percent) for _ in range(n_layer+25)])
         
         # Add attention mechanism
         self.attention = Attention(hidden_dim)
@@ -104,6 +142,9 @@ class PyTorchMLPModel(nn.Module):
         rnn_out, _ = self.rnn(x)
 
         x = self.bn_output(rnn_out[:, -1, :])  # Use the last time step's output
+   
+        x = x.reshape(-1, 1, self.time_window * x.shape[-1])
+
         x = self.output_layer(x)
         return x
 
@@ -221,7 +262,7 @@ class FeedForward(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
+            nn.Sigmoid(),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

@@ -25,12 +25,12 @@ class EmaEng(IStrategy):
     stoploss = -0.05
  
 
-    buy_range_EMA = IntParameter(2, 50, default=17, optimize=True)
-    sell_range_EMA = IntParameter(2, 50, default=47, optimize=True)
+    buy_range_EMA = IntParameter(2, 70, default=50, optimize=True)
+    sell_range_EMA = IntParameter(2, 70, default=50, optimize=True)
 
-    buy_EMA_parameter = DecimalParameter(0.00, 1, default= 0.043, optimize=True)
+    buy_EMA_parameter = DecimalParameter(0.00, 1, default= 0.3, optimize=True)
 
-    trade_trigger = CategoricalParameter(["can_short", "can_long","can_both"],default="can_long", space='buy', optimize=True)
+    trade_trigger = CategoricalParameter(["can_short", "can_long","can_both"],default="can_both", space='buy', optimize=True)
     if trade_trigger.value=='can_long':
         can_short = False
     else:

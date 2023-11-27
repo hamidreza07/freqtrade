@@ -64,9 +64,9 @@ class RandomRegressionXGB(BaseRegressionModel):
         randomized_search = RandomizedSearchCV(
             estimator=model,
             param_distributions=param_grid,
-            n_iter=200,
+            n_iter=50,
             scoring=make_scorer(rmse_scorer, greater_is_better=False),
-            cv=5,
+            cv=3,
             random_state=42,
             n_jobs=-1
         )
