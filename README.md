@@ -46,7 +46,7 @@ freqtrade plot-dataframe --strategy BBvwap --strategy-path freqtrade/templates  
 
 
 
-* be carefull of train_period_days and backtest_period_days in running backtest and hyperparameter optimazer at freqai(sum of train_period_days and backtest_period_days must not be greater than time range)
+* Be mindful of the `train_period_days` and `backtest_period_days` settings when running backtests and hyperparameter optimizations in FreqAI. The sum of `train_period_days` and `backtest_period_days` must not exceed the specified time range.
 
 * Remove all - __pycache__ - file before backtesting and hyperopt:
 
